@@ -174,6 +174,7 @@ class TransformerXL(object):
         else:
             model.apply(self.weights_init)
             model.word_emb.apply(self.weights_init) 
+        model = nn.DataParallel(model)
         return st_eopch ,model.to(self.device)
 
 

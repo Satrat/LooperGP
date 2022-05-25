@@ -25,7 +25,7 @@ def main():
     # load train data
     training_data = np.load(os.path.join('','fulldataset-song-artist-train_data_XL.npz'))
 
-    device = torch.device("cuda:{}".format(trainConfig['gpuID']) if not trainConfig["no_cuda"] and torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if not trainConfig["no_cuda"] and torch.cuda.is_available() else "cpu")
     os.environ['CUDA_VISIBLE_DEVICES'] = trainConfig['gpuID']
 
     print('Device to train:', device)

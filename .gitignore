@@ -1,3 +1,7 @@
+model-weights/*
+inference-attempts/*
+fulldataset-song-artist-train_data_XL.npz
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

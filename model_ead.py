@@ -88,7 +88,6 @@ def network_paras(model):
     params = sum([np.prod(p.size()) for p in model_parameters])
     return params
 
-
 class TransformerXL(object):
     def __init__(self, modelConfig, device, event2word, word2event, is_training=True):
 
@@ -174,7 +173,6 @@ class TransformerXL(object):
         else:
             model.apply(self.weights_init)
             model.word_emb.apply(self.weights_init) 
-        model = nn.DataParallel(model)
         return st_eopch ,model.to(self.device)
 
 

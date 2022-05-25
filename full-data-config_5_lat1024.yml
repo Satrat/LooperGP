@@ -1,0 +1,53 @@
+
+MODEL:
+    n_head: 8
+    n_layer: 10         #12
+    dropout: 0.1
+    d_inner: 4096        #d_ff prev 2048
+    d_embed: 512
+    d_model: 1024        # prev 768
+    dropatt: 0.0         #attention probability dropout rate
+    query_dim: 16        #64
+    seq_len: 512         #512
+    n_token: 3020
+    mem_len: 512
+    ext_len: 0
+    tgt_len: 70
+    eval_tgt_len: 50
+    init: 'normal'       #parameter initializer to use.
+    emb_init: 'normal'   #parameter initializer to use.
+    init_range: 0.1
+    emb_init_range: 0.01 #parameters initialized by U(-init_range, init_range)
+    init_std: 0.02       #parameters initialized by N(0, init_std)
+    proj_init_std: 0.01
+    clamp_len: -1        #use the same pos embeddings after clamp_len
+    div_val: 1
+    position_concat: False
+    pre_lnorm: True      #apply LayerNorm to the input instead of the output
+    same_length: True    #use the same attn length for all tokens
+
+
+TRAIN: 
+    ROOT: '../../../dataset/representations/uncond/remi/ailab17k_from-scratch_remi'
+    gpuID: '0'
+    output_dir: ""        # directory for saving model weights
+    batch_size: 8  #5
+    lr: 0.0001      #0.0002         
+    num_epochs: 300
+    save_freq: 20
+    seed: 2222
+    optim: 'adam'    
+    no_cuda: False
+    resume_training_model: True
+    resume_training_model: '/model-weights/ep_200.pth.tar'
+
+
+INFERENCE:
+    num_sample: 2      # the number of songs it will generate
+    gpuID: '0'
+    dictionary_path: '../../../dataset/representations/uncond/remi/ailab17k_from-scratch_remi/dictionary.pkl'
+    experiment_dir: './model-weights'      # directory for model weights
+    generated_dir: './gen_midis'
+    checkpoint_type: epoch_idx    # best_train, best_val, epoch_idx
+    model_epoch: 200                
+    no_cuda: False

@@ -1,0 +1,29 @@
+Running Training
+python train_randomsampling_5_lat1024.py
+(uses full-data-config_5_lat1024.yml)
+
+Had to reduce batch size from 8 to 4 to avoid running out of GPU memory
+Using model_ead.py instead of model_randomsampling? Check with Pedro about this
+modules.py MemTransformer LMis the actual model implementation. forward line 415
+
+
+Running Inference
+python inference_fd5_lat1024.py
+(uses full-data-config_5_lat1024.yml)
+
+Generates several inference attempts as text files in inference-attempts, adjustable in script
+Need to then convert the text tokens to guitar pro format, using dadagp repo:
+python dadagp.py decode input.txt output.gp5
+python dadagp.py decode ../dadaGP-generation/inference-attempts/model_5lat1024_ep200_2048_2/gentokens_t_1.2_p_0.9_id_0.txt output_constrain_measure1.gp5
+
+Training Data
+fulldataset-song-aritst-train_data_XL.npz is dataset processed for training
+Unprocessed dataset stored in D:/DATA/dadaGP-v1.1
+
+['x', 'y', 'mask', 'seq_len', 'num_groups']
+x, y, mask dims: (19930, 40, 512)
+seq_len and num_groups: (19930)
+Check with Pedro meaning of these dimmensions
+(x,y,z) becomes (data,target,mask) in Transformer forward pass
+The mask seems to just be a way to accomodate different sequence lengths
+Ask Pedro about how this representation was generated. I assume they are embeddings?

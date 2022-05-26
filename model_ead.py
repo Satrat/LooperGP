@@ -156,9 +156,9 @@ class TransformerXL(object):
 
         st_eopch = 0
         if pretrain_model:
-            map_location = {'cuda:%d' % 0: 'cuda:%d' % self.device}
+            map_location = {'cuda:%d' % self.device}
             print(map_location)
-            checkpoint = torch.load(pretrain_model) #, map_location=map_location)
+            checkpoint = torch.load(pretrain_model, map_location=map_location)
             print('Pretrained model config:')
             print('epoch: ', checkpoint['epoch'])
             print('best_loss: ', checkpoint['best_loss'])

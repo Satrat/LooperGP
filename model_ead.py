@@ -275,45 +275,47 @@ class TransformerXL(object):
                     train_loss.append(loss.item()) 
                     loss.backward()
 
-                    sys.stdout.write('epoch:{:3d}/{:3d}, batch: {:4d}/{:4d}, group: {:2d}/{:2d} | Loss: {:6f}\r'.format(
-                        epoch,
-                        trainConfig['num_epochs'],
-                        bidx,
-                        num_batches,
-                        gidx,
-                        n_group, 
-                        loss.item()
-                    ))
-                    sys.stdout.flush()
+                    if self.device == 0:
+                        sys.stdout.write('epoch:{:3d}/{:3d}, batch: {:4d}/{:4d}, group: {:2d}/{:2d} | Loss: {:6f}\r'.format(
+                            epoch,
+                            trainConfig['num_epochs'],
+                            bidx,
+                            num_batches,
+                            gidx,
+                            n_group, 
+                            loss.item()
+                        ))
+                        sys.stdout.flush()
 
                 optimizer.step()
 
             #val_loss = self.validate(val_data, batch_size, model, trainConfig["seed"], trainConfig['max_eval_steps'])
-            curr_train_loss = sum(train_loss) / len(train_loss)
-            saver_agent.add_summary('epoch loss', curr_train_loss)
+            if self.rank == 0:
+                curr_train_loss = sum(train_loss) / len(train_loss)
+                saver_agent.add_summary('epoch loss', curr_train_loss)
 
-            #epoch_val_loss.append(val_loss)
-            epoch_train_loss.append(curr_train_loss)
-            # epoch_info = 'Train Loss: {:.5f} , Val Loss: {:.5f}, T: {:.3f}'.format(curr_train_loss, val_loss, time.time()-st_time)
-            epoch_info = 'Epoch: {}, Train Loss: {:.5f} ,  T: {:.3f}'.format(epoch+1, curr_train_loss, time.time()-st_time)
-            print(epoch_info)
+                #epoch_val_loss.append(val_loss)
+                epoch_train_loss.append(curr_train_loss)
+                # epoch_info = 'Train Loss: {:.5f} , Val Loss: {:.5f}, T: {:.3f}'.format(curr_train_loss, val_loss, time.time()-st_time)
+                epoch_info = 'Epoch: {}, Train Loss: {:.5f} ,  T: {:.3f}'.format(epoch+1, curr_train_loss, time.time()-st_time)
+                print(epoch_info)
 
-            # self.train_loss_record(epoch, curr_train_loss, checkpoint_dir, val_loss)
-            self.train_loss_record(epoch, curr_train_loss, checkpoint_dir)
-            self.save_checkpoint({
-                    'epoch': epoch + 1,
-                    'model_setting': self.modelConfig,
-                    'train_setting': trainConfig,
-                    'state_dict': model.state_dict(),
-                    'best_loss': curr_train_loss,
-                    'optimizer' : optimizer.state_dict(),
-                                }, 
-                    checkpoint_dir, 
-                    save_freq)
+                # self.train_loss_record(epoch, curr_train_loss, checkpoint_dir, val_loss)
+                self.train_loss_record(epoch, curr_train_loss, checkpoint_dir)
+                self.save_checkpoint({
+                        'epoch': epoch + 1,
+                        'model_setting': self.modelConfig,
+                        'train_setting': trainConfig,
+                        'state_dict': model.state_dict(),
+                        'best_loss': curr_train_loss,
+                        'optimizer' : optimizer.state_dict(),
+                                    }, 
+                        checkpoint_dir, 
+                        save_freq)
 
-            if curr_train_loss < 0.01:
-                print('Experiment [{}] finished at loss < 0.01.'.format(checkpoint_dir))
-                break
+                if curr_train_loss < 0.01:
+                    print('Experiment [{}] finished at loss < 0.01.'.format(checkpoint_dir))
+                    break
 
     def inference(self, model_path, token_lim, strategies, params, id, bpm, output_path, primer=1):
 

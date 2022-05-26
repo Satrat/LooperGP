@@ -27,7 +27,8 @@ def cleanup():
 def main(rank, world_size):
     setup(rank, world_size)
     # gen config
-    modelConfig, trainConfig = get_configs()
+    modelConfig, trainConfig = get_configs(rank)
+    dist.barrier()
 
     # load dictionary
     event2word = pickle.load(open("vocab_song_artist.pkl", 'rb')) # fulldataset non-splitted
@@ -38,17 +39,17 @@ def main(rank, world_size):
     # load train data
     training_data = np.load(os.path.join('','fulldataset-song-artist-train_data_XL.npz'))
 
-    device = torch.device("cuda" if not trainConfig["no_cuda"] and torch.cuda.is_available() else "cpu")
-    os.environ['CUDA_VISIBLE_DEVICES'] = trainConfig['gpuID']
+    #device = torch.device("cuda" if not trainConfig["no_cuda"] and torch.cuda.is_available() else "cpu")
+    #os.environ['CUDA_VISIBLE_DEVICES'] = trainConfig['gpuID']
 
-    print('Device to train:', device)
+    #print('Device to train:', device)
     
     resume = trainConfig['resume_training_model']
 
     # declare model
     model = TransformerXL(
             modelConfig,
-            device,
+            rank,
             event2word=event2word, 
             word2event=word2event, 
             is_training=True)
@@ -56,33 +57,34 @@ def main(rank, world_size):
     # train
     model.train(training_data,
                 trainConfig,
-                device,
+                rank,
                 resume)
 
     cleanup()
 
-def get_configs():
+def get_configs(rank):
     cfg = yaml.full_load(open("full-data-config_5_lat1024.yml", 'r')) 
 
     modelConfig = cfg['MODEL']
     trainConfig = cfg['TRAIN']
 
-    cur_date = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
-    experiment_Dir = os.path.join(trainConfig['output_dir'],"5_lat1024" + cur_date)
-    if not os.path.exists(experiment_Dir):
-        print('experiment_Dir:', experiment_Dir)
-        os.makedirs(experiment_Dir) 
-    print('Experiment: ', experiment_Dir)
-    trainConfig.update({'experiment_Dir': experiment_Dir})
+    if rank == 0:
+        cur_date = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+        experiment_Dir = os.path.join(trainConfig['output_dir'],"5_lat1024" + cur_date)
+        if not os.path.exists(experiment_Dir):
+            print('experiment_Dir:', experiment_Dir)
+            os.makedirs(experiment_Dir) 
+        print('Experiment: ', experiment_Dir)
+        trainConfig.update({'experiment_Dir': experiment_Dir})
 
+        with open(os.path.join(experiment_Dir, 'full-data-config.yml'), 'w') as f:
+            doc = yaml.dump(cfg, f)
 
-    with open(os.path.join(experiment_Dir, 'full-data-config.yml'), 'w') as f:
-        doc = yaml.dump(cfg, f)
+        print('='*5, 'Model configs', '='*5)
+        print(json.dumps(modelConfig, indent=1, sort_keys=True))
+        print('='*2, 'Training configs', '='*5)
+        print(json.dumps(trainConfig, indent=1, sort_keys=True))
 
-    print('='*5, 'Model configs', '='*5)
-    print(json.dumps(modelConfig, indent=1, sort_keys=True))
-    print('='*2, 'Training configs', '='*5)
-    print(json.dumps(trainConfig, indent=1, sort_keys=True))
     return modelConfig, trainConfig
 
 

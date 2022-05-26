@@ -164,12 +164,12 @@ class TransformerXL(object):
             print(json.dumps(checkpoint['model_setting'], indent=1, sort_keys=True))
             print(json.dumps(checkpoint['train_setting'], indent=1, sort_keys=True))
 
-            try:
-                model.load_state_dict(checkpoint['state_dict'])
-                print('{} loaded.'.format(pretrain_model))  
-            except:
-                print('Loaded weights have different shapes with the model. Please check your model setting.')
-                exit()
+            #try:
+            model.load_state_dict(checkpoint['state_dict'])
+            print('{} loaded.'.format(pretrain_model))  
+            #except:
+            #    print('Loaded weights have different shapes with the model. Please check your model setting.')
+            #    exit()
             st_eopch = checkpoint['epoch'] + 1
 
         else:

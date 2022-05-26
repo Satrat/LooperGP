@@ -156,7 +156,7 @@ class TransformerXL(object):
 
         st_eopch = 0
         if pretrain_model:
-            map_location = {'cuda:%d' % self.device}
+            map_location = "cuda:" + str(self.device)
             print(map_location)
             checkpoint = torch.load(pretrain_model, map_location=map_location)
             print('Pretrained model config:')
@@ -241,6 +241,7 @@ class TransformerXL(object):
         num_groups = train_data['num_groups'] 
 
         num_batches = len(train_x ) // batch_size
+        print("{} batches, {} per batch".format(num_batches, batch_size))
         
         print('>>> Start training')
         for epoch in range(st_epoch, trainConfig['num_epochs']):

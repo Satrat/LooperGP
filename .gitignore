@@ -1,7 +1,8 @@
 model-weights/*
 inference-attempts/*
+outputs/*
 fulldataset-song-artist-train_data_XL.npz
-runtime_stats.json
+./runtime_stats.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

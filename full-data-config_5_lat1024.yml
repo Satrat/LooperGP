@@ -28,26 +28,25 @@ MODEL:
 
 
 TRAIN: 
-    ROOT: '../../../dataset/representations/uncond/remi/ailab17k_from-scratch_remi'
-    gpuID: '0'
-    output_dir: ""        # directory for saving model weights
-    batch_size: 2  #5
+    data_path: './fulldataset-song-artist-train_data_XL.npz'
+    output_dir: "./outputs/"        # directory for saving model weights
+    batch_size: 4  #5
     lr: 0.0001      #0.0002         
     num_epochs: 300
     save_freq: 20
-    seed: 2222
-    optim: 'adam'    
+    seed: 2222    
     no_cuda: False
     resume_training_model: True
     resume_training_model: './model-weights/ep_200.pth.tar'
 
 
 INFERENCE:
-    num_sample: 2      # the number of songs it will generate
+    num_sample: 2 # the number of songs it will generate
+    bpm: 100
+    primer: 2
     gpuID: '0'
-    dictionary_path: '../../../dataset/representations/uncond/remi/ailab17k_from-scratch_remi/dictionary.pkl'
-    experiment_dir: './model-weights'      # directory for model weights
-    generated_dir: './gen_midis'
-    checkpoint_type: epoch_idx    # best_train, best_val, epoch_idx
+    experiment_dir: './model-weights'      # folder containing model checkpoint
+    generated_dir: './inference_attempts'
+    checkpoint_type: epoch_idx  # best_train, best_val, epoch_idx
     model_epoch: 200                
     no_cuda: False

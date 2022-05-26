@@ -1,4 +1,3 @@
-
 import os
 import json
 import yaml
@@ -26,24 +25,17 @@ def cleanup():
 
 def main(rank, world_size):
     setup(rank, world_size)
-    # gen config
     modelConfig, trainConfig = get_configs(rank)
     dist.barrier()
 
     # load dictionary
-    event2word = pickle.load(open("vocab_song_artist.pkl", 'rb')) # fulldataset non-splitted
-    print("event2word size: ", len(event2word))
+    event2word = pickle.load(open("vocab_song_artist.pkl", 'rb'))
     word2event = pickle.load(open("rev_vocab_song_artist.pkl", 'rb'))
-    print("word2event size: ", len(word2event))
 
     # load train data
-    training_data = np.load(os.path.join('','fulldataset-song-artist-train_data_XL.npz'))
-
-    #device = torch.device("cuda" if not trainConfig["no_cuda"] and torch.cuda.is_available() else "cpu")
-    #os.environ['CUDA_VISIBLE_DEVICES'] = trainConfig['gpuID']
-
-    #print('Device to train:', device)
+    training_data = np.load(trainConfig['data_path'])
     
+    # load trained model config
     resume = trainConfig['resume_training_model']
 
     # declare model
@@ -57,7 +49,6 @@ def main(rank, world_size):
     # train
     model.train(training_data,
                 trainConfig,
-                rank,
                 resume)
 
     cleanup()
@@ -72,10 +63,10 @@ def get_configs(rank):
         cur_date = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
         experiment_Dir = os.path.join(trainConfig['output_dir'],"5_lat1024" + cur_date)
         if not os.path.exists(experiment_Dir):
-            print('experiment_Dir:', experiment_Dir)
+            print('Creating experiment_dir:', experiment_Dir)
             os.makedirs(experiment_Dir) 
         print('Experiment: ', experiment_Dir)
-        trainConfig.update({'experiment_Dir': experiment_Dir})
+        trainConfig.update({'experiment_dir': experiment_Dir})
 
         with open(os.path.join(experiment_Dir, 'full-data-config.yml'), 'w') as f:
             doc = yaml.dump(cfg, f)
@@ -89,8 +80,7 @@ def get_configs(rank):
 
 
 if __name__ == '__main__':
-    #main()
-    world_size = 4
+    world_size = 1
     mp.spawn(main,
              args=(world_size,),
              nprocs=world_size,

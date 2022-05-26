@@ -2,38 +2,31 @@ import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import math
 import numpy as np
 import pandas as pd
 import miditoolkit
-import shutil
-import copy
 import os
 import time
-import json
 from sklearn.model_selection import train_test_split
 from modules import MemTransformerLM
 from glob import glob
-# for scheduling
 from transformers import AdamW, WarmUp, get_polynomial_decay_schedule_with_warmup
 
 import miditoolkit
 from miditoolkit.midi.containers import Marker, Instrument, TempoChange, Note
-import collections
-import pickle 
 import numpy as np
 
 import saver
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-# ================================ #
+# Constants #
 BEAT_RESOL = 480
 BAR_RESOL = BEAT_RESOL * 4
 TICK_RESOL = BEAT_RESOL // 4
 INSTR_NAME_MAP = {'piano': 0, 'melody': 1}
 
 
-def wrtie_midi(words, path_midi, word2event):
+def write_midi(words, path_midi, word2event):
     notes_all = []
 
     events = [word2event[words[i]] for i in range(len(words))]
@@ -46,7 +39,6 @@ def wrtie_midi(words, path_midi, word2event):
     
     for i in range(len(events)-3):
         cur_event = events[i]
-        # print(cur_event)
         name = cur_event.split('_')[0]
         attr = cur_event.split('_')
         if name == 'Bar':
@@ -82,7 +74,6 @@ def wrtie_midi(words, path_midi, word2event):
     midi_obj.dump(path_midi)
 
 
-# ================================ #
 def network_paras(model):
     # compute only trainable params
     model_parameters = filter(lambda p: p.requires_grad, model.parameters())
@@ -90,7 +81,7 @@ def network_paras(model):
     return params
 
 class TransformerXL(object):
-    def __init__(self, modelConfig, device, event2word, word2event, is_training=True):
+    def __init__(self, modelConfig, device_rank, event2word, word2event, is_training=True):
 
         self.event2word = event2word
         self.word2event = word2event
@@ -113,7 +104,7 @@ class TransformerXL(object):
 
         #mode
         self.is_training = is_training
-        self.rank = device
+        self.rank = device_rank
         self.device = "cuda:" + str(self.rank)
         
 
@@ -158,18 +149,9 @@ class TransformerXL(object):
         st_eopch = 0
         if pretrain_model:
             checkpoint = torch.load(pretrain_model, map_location=self.device)
-            print('Pretrained model config:')
-            print('epoch: ', checkpoint['epoch'])
-            print('best_loss: ', checkpoint['best_loss'])
-            print(json.dumps(checkpoint['model_setting'], indent=1, sort_keys=True))
-            print(json.dumps(checkpoint['train_setting'], indent=1, sort_keys=True))
-
-            #try:
+            print('Pretrained model config for {}: epoch {} best_loss {}'.format(self.device, checkpoint['epoch'], checkpoint['best_loss']))
             model.load_state_dict(checkpoint['state_dict'])
-            print('{} loaded.'.format(pretrain_model))  
-            #except:
-            #    print('Loaded weights have different shapes with the model. Please check your model setting.')
-            #    exit()
+            print('{} loaded on {}'.format(pretrain_model, self.device))  
             st_eopch = checkpoint['epoch'] + 1
 
         else:
@@ -183,7 +165,6 @@ class TransformerXL(object):
             torch.save(state, os.path.join(root,'ep_{}.pth.tar'.format(state['epoch'])))
 
     def train_loss_record(self, epoch, train_loss,checkpoint_dir, val_loss=None):
-
         if val_loss:
             df = pd.DataFrame({'epoch': [epoch+1],
                     'train_loss': ['%.3f'%train_loss],
@@ -200,35 +181,32 @@ class TransformerXL(object):
         else:
             df.to_csv(os.path.join(checkpoint_dir, 'loss.csv'), mode='a', header=False,  index=False)
 
-    def train(self, train_data, trainConfig, device, resume):
+    def train(self, train_data, trainConfig, resume):
         if self.rank == 0:
-            checkpoint_dir = trainConfig['experiment_Dir']
+            checkpoint_dir = trainConfig['experiment_dir']
             saver_agent = saver.Saver(checkpoint_dir)
         else:
             checkpoint_dir = None
             saver_agent = None
+
         batch_size = trainConfig['batch_size']
-        data_ROOT = trainConfig['ROOT']
         torch.manual_seed(trainConfig["seed"])
 
         #Prepare model
         if resume != 'None':
             st_epoch, model = self.get_model(resume)
-            print('Continue to train from {} epoch'.format(st_epoch))
+            print('Continue to train from {} epoch on {}'.format(st_epoch, self.device))
         else:
             st_epoch, model = self.get_model()
 
         model = DDP(model, device_ids=[self.rank])
-        num_train_steps = int(len(train_data['x']) * trainConfig['num_epochs'])
         optimizer = optim.Adam(model.parameters(), lr=trainConfig['lr'])
-        # for scheduling
-        #scheduler = get_polynomial_decay_schedule_with_warmup(optimizer,num_warmup_steps=0,num_training_steps=num_train_steps, lr_end=1e-05)
-        train_step = 0
+       
         epoch_train_loss = []
         save_freq = trainConfig['save_freq']
         
         n_parameters = network_paras(model)
-        print('n_parameters: {:,}'.format(n_parameters))
+        print('n_parameters: {:,} on {}'.format(n_parameters, self.device))
         if self.rank == 0:
             saver_agent.add_summary_msg(
                 ' > params amount: {:,d}'.format(n_parameters))
@@ -240,9 +218,9 @@ class TransformerXL(object):
         num_groups = train_data['num_groups'] 
 
         num_batches = len(train_x ) // batch_size
-        print("{} batches, {} per batch".format(num_batches, batch_size))
+        print("{} batches, {} per batch on {}".format(num_batches, batch_size, self.device))
         
-        print('>>> Start training')
+        print('>>> Start training on {}'.format(self.device))
         for epoch in range(st_epoch, trainConfig['num_epochs']):
             if self.rank == 0:
                 saver_agent.global_step_increment()
@@ -295,18 +273,14 @@ class TransformerXL(object):
 
                 optimizer.step()
 
-            #val_loss = self.validate(val_data, batch_size, model, trainConfig["seed"], trainConfig['max_eval_steps'])
             if self.rank == 0:
                 curr_train_loss = sum(train_loss) / len(train_loss)
                 saver_agent.add_summary('epoch loss', curr_train_loss)
 
-                #epoch_val_loss.append(val_loss)
                 epoch_train_loss.append(curr_train_loss)
-                # epoch_info = 'Train Loss: {:.5f} , Val Loss: {:.5f}, T: {:.3f}'.format(curr_train_loss, val_loss, time.time()-st_time)
                 epoch_info = 'Epoch: {}, Train Loss: {:.5f} ,  T: {:.3f}'.format(epoch+1, curr_train_loss, time.time()-st_time)
                 print(epoch_info)
 
-                # self.train_loss_record(epoch, curr_train_loss, checkpoint_dir, val_loss)
                 self.train_loss_record(epoch, curr_train_loss, checkpoint_dir)
                 self.save_checkpoint({
                         'epoch': epoch + 1,
@@ -389,7 +363,7 @@ class TransformerXL(object):
                 others_splitted.append(token)
        
         #beg_list = others_splitted
-        print(beg_list)
+        print("Primer: {}".format(beg_list))
 
 
         beg_event2word = list()
@@ -399,9 +373,11 @@ class TransformerXL(object):
         words[-1] += beg_event2word
         final = "\n".join(beg_list) 
         final+='\n'
+
         # initialize mem
         mems = tuple()
         song_init_time = time.time()
+
         # generate
         initial_flag = True
         generate_n_bar = 0
@@ -409,7 +385,6 @@ class TransformerXL(object):
         n_tokens = len(words[0])
         ticks_per_measure = 960 * 4
         bars_to_generate = 8
-        #while len(words[0]) < token_lim:
         while generate_n_bar < bars_to_generate:
             # prepare input
             if initial_flag:
@@ -427,7 +402,6 @@ class TransformerXL(object):
                     temp_x[0][b] = words[b][-1] ####?####
 
             temp_x = torch.from_numpy(temp_x).long().to(self.device)     
-            st_time = time.time()
             
             _logits, mems = model.generate(temp_x, *mems)
             logits = _logits.cpu().squeeze().detach().numpy()
@@ -438,7 +412,6 @@ class TransformerXL(object):
                 
             else:
                 probs = self.temperature(logits=logits, temperature=1.)
-            # sampling
 
             word = self.nucleus(probs=probs, p=params['p']) 
 
@@ -468,13 +441,11 @@ class TransformerXL(object):
                 split_word = self.word2event[word].split(":")
                 wait_amnt = int(split_word[1])
                 if ticks_since_measure + wait_amnt > ticks_per_measure:
-                    print("ADJUST WAIT")
                     new_wait_amnt = ticks_per_measure + wait_amnt - ticks_per_measure
                     word = self.event2word["wait:" + str(new_wait_amnt)]
                     new_measure = True
                     ticks_since_measure = 0
                 elif ticks_since_measure + wait_amnt == ticks_per_measure:
-                    print("NATURAL NEW MEASURE")
                     new_measure = True
                     ticks_since_measure = 0
                 else:
@@ -487,31 +458,25 @@ class TransformerXL(object):
             if not skip_token:
                 words[0].append(word)
                 final += self.word2event[word] + '\n'
-                print(len(words[0]), self.word2event[word])
             if new_measure:
-                print("NEW MEAUSRE")
                 event = 'new_measure'
                 words[0].append(self.event2word[event])
                 final += event + '\n'
-                print(len(words[0]), event)
                 generate_n_bar += 1
 
 
         temperatura = params['t']
         parametro_n = params['p']
-        #parametro_top = params['k']
 
-        #epoca = params[]
         generated_file_name = output_path + "/gentokens_" + "t_" + str(temperatura) + "_p_"+ str(parametro_n) + "_id_"+ str(id) +".txt"
 
         with open(generated_file_name, "w") as text_file:
             final += 'end\n'
             text_file.write(final)
-        #wrtie_midi(words[0], output_path, self.word2event)       
+        #write_midi(words[0], output_path, self.word2event)       
         
 
         song_total_time = time.time() - song_init_time
-        print('Total words generated: ', len(words[0]))
         return song_total_time, len(words[0])
 
     ########################################
@@ -519,7 +484,6 @@ class TransformerXL(object):
     ########################################
     def temperature(self, logits, temperature):
         probs = np.exp(logits / temperature) / np.sum(np.exp(logits / temperature))
-        #print(type(probs))
         return probs
 
     ########################################

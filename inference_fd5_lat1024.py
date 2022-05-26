@@ -60,6 +60,7 @@ def main():
     num_samples = inferenceConfig["num_sample"]
     primer = inferenceConfig["primer"]
     bpm = inferenceConfig["bpm"]
+    num_bars = inferenceConfig["num_bars"]
 
     cur_date = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
     experiment_dir = os.path.join(inferenceConfig['generated_dir'],cur_date)
@@ -71,11 +72,8 @@ def main():
         print(f'==={idx}/{num_samples}===')
         song_time, word_len = model.inference(
             model_path = model_path,
-            token_lim=2048,
             strategies=['temperature', 'nucleus'],
-            params={'t': 1.2 ,'p': 0.9},
-            bpm=bpm,
-            primer=primer,
+            params={'t': 1.2 ,'p': 0.9, 'bpm': bpm, 'primer': primer, 'num_bars':num_bars},
             id = idx, 
             output_path=experiment_dir)
             

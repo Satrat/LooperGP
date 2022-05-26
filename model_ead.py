@@ -297,7 +297,7 @@ class TransformerXL(object):
                     print('Experiment [{}] finished at loss < 0.01.'.format(checkpoint_dir))
                     break
 
-    def inference(self, model_path, token_lim, strategies, params, id, bpm, output_path, primer=1):
+    def inference(self, model_path, strategies, params, id, output_path):
 
         if not os.path.exists(output_path):
             os.mkdir(output_path)
@@ -312,6 +312,7 @@ class TransformerXL(object):
         final = str()
 
         # THE ONE WHO WAS WORKING KINDA GOOD
+        bpm = params['bpm']
         prompt_e = ['artist:unknown_artist', 'downtune:0', 'tempo:' + str(bpm), 'start', 'new_measure',
                     'distorted0:note:s6:f0',
                     'bass:note:s5:f0',
@@ -336,6 +337,7 @@ class TransformerXL(object):
         prompt_empty = ['artist:unknown_artist', 'downtune:0', 'tempo:' + str(bpm), 'start', 'new_measure']
               
         ticks_since_measure = 0
+        primer = params['primer']
         if primer==1:
             beg_list = prompt_e
             ticks_since_measure += 240
@@ -362,7 +364,6 @@ class TransformerXL(object):
             else: 
                 others_splitted.append(token)
        
-        #beg_list = others_splitted
         print("Primer: {}".format(beg_list))
 
 
@@ -384,7 +385,7 @@ class TransformerXL(object):
         batch_size = 1
         n_tokens = len(words[0])
         ticks_per_measure = 960 * 4
-        bars_to_generate = 8
+        bars_to_generate = params['num_bars']
         while generate_n_bar < bars_to_generate:
             # prepare input
             if initial_flag:

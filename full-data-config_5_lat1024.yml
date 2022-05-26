@@ -31,7 +31,7 @@ TRAIN:
     ROOT: '../../../dataset/representations/uncond/remi/ailab17k_from-scratch_remi'
     gpuID: '0'
     output_dir: ""        # directory for saving model weights
-    batch_size: 4  #5
+    batch_size: 2  #5
     lr: 0.0001      #0.0002         
     num_epochs: 300
     save_freq: 20

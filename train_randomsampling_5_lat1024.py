@@ -37,7 +37,7 @@ def main(rank, world_size):
     print("word2event size: ", len(word2event))
 
     # load train data
-    training_data = np.load(os.path.join('','fulldataset-song-artist-train_data_XL.npz'))
+    training_data = np.load(os.path.join('','fulldataset-song-artist-train_data_XL.npz')).to("cuda:" + str(rank))
 
     #device = torch.device("cuda" if not trainConfig["no_cuda"] and torch.cuda.is_available() else "cpu")
     #os.environ['CUDA_VISIBLE_DEVICES'] = trainConfig['gpuID']

@@ -113,7 +113,8 @@ class TransformerXL(object):
 
         #mode
         self.is_training = is_training
-        self.device = device  
+        self.rank = device
+        self.device = "cuda:" + str(self.rank)
         
 
     def init_weight(self, weight):
@@ -156,9 +157,7 @@ class TransformerXL(object):
 
         st_eopch = 0
         if pretrain_model:
-            map_location = "cuda:" + str(self.device)
-            print(map_location)
-            checkpoint = torch.load(pretrain_model, map_location=map_location)
+            checkpoint = torch.load(pretrain_model, map_location=self.device)
             print('Pretrained model config:')
             print('epoch: ', checkpoint['epoch'])
             print('best_loss: ', checkpoint['best_loss'])
@@ -219,7 +218,7 @@ class TransformerXL(object):
         else:
             st_epoch, model = self.get_model()
 
-        model = DDP(model, device_ids=[self.device])
+        model = DDP(model, device_ids=[self.rank])
         num_train_steps = int(len(train_data['x']) * trainConfig['num_epochs'])
         optimizer = optim.Adam(model.parameters(), lr=trainConfig['lr'])
         # for scheduling
@@ -230,7 +229,7 @@ class TransformerXL(object):
         
         n_parameters = network_paras(model)
         print('n_parameters: {:,}'.format(n_parameters))
-        if self.device == 0:
+        if self.rank == 0:
             saver_agent.add_summary_msg(
                 ' > params amount: {:,d}'.format(n_parameters))
 
@@ -245,7 +244,7 @@ class TransformerXL(object):
         
         print('>>> Start training')
         for epoch in range(st_epoch, trainConfig['num_epochs']):
-            if self.device == 0:
+            if self.rank == 0:
                 saver_agent.global_step_increment()
 
             train_loss = []
@@ -282,7 +281,7 @@ class TransformerXL(object):
                     train_loss.append(loss.item()) 
                     loss.backward()
 
-                    if self.device == 0:
+                    if self.rank == 0:
                         sys.stdout.write('epoch:{:3d}/{:3d}, batch: {:4d}/{:4d}, group: {:2d}/{:2d} | Loss: {:6f}\r'.format(
                             epoch,
                             trainConfig['num_epochs'],
@@ -297,7 +296,7 @@ class TransformerXL(object):
                 optimizer.step()
 
             #val_loss = self.validate(val_data, batch_size, model, trainConfig["seed"], trainConfig['max_eval_steps'])
-            if self.device == 0:
+            if self.rank == 0:
                 curr_train_loss = sum(train_loss) / len(train_loss)
                 saver_agent.add_summary('epoch loss', curr_train_loss)
 

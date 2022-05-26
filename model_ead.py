@@ -200,16 +200,15 @@ class TransformerXL(object):
             df.to_csv(os.path.join(checkpoint_dir, 'loss.csv'), mode='a', header=False,  index=False)
 
     def train(self, train_data, trainConfig, device, resume):
-        if self.rank == 0:
+        if self.device == 0:
             checkpoint_dir = trainConfig['experiment_Dir']
+            saver_agent = saver.Saver(checkpoint_dir)
         else:
             checkpoint_dir = None
+            saver_agent = None
         batch_size = trainConfig['batch_size']
         data_ROOT = trainConfig['ROOT']
         torch.manual_seed(trainConfig["seed"])
-
-        # create saver
-        saver_agent = saver.Saver(checkpoint_dir)
 
         #Prepare model
         if resume != 'None':
@@ -229,8 +228,9 @@ class TransformerXL(object):
         
         n_parameters = network_paras(model)
         print('n_parameters: {:,}'.format(n_parameters))
-        saver_agent.add_summary_msg(
-            ' > params amount: {:,d}'.format(n_parameters))
+        if self.device == 0:
+            saver_agent.add_summary_msg(
+                ' > params amount: {:,d}'.format(n_parameters))
 
         # unpack
         train_x = train_data['x'] 
@@ -242,7 +242,8 @@ class TransformerXL(object):
         
         print('>>> Start training')
         for epoch in range(st_epoch, trainConfig['num_epochs']):
-            saver_agent.global_step_increment()
+            if self.device == 0:
+                saver_agent.global_step_increment()
 
             train_loss = []
             st_time = time.time()
@@ -293,7 +294,7 @@ class TransformerXL(object):
                 optimizer.step()
 
             #val_loss = self.validate(val_data, batch_size, model, trainConfig["seed"], trainConfig['max_eval_steps'])
-            if self.rank == 0:
+            if self.device == 0:
                 curr_train_loss = sum(train_loss) / len(train_loss)
                 saver_agent.add_summary('epoch loss', curr_train_loss)
 

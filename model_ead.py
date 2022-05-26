@@ -260,9 +260,9 @@ class TransformerXL(object):
                 bidx_ed = batch_size * (bidx + 1)
 
                 # get batch
-                batch_x = train_x[bidx_st:bidx_ed]
-                batch_y = train_y[bidx_st:bidx_ed]
-                batch_mask = mask[bidx_st:bidx_ed]
+                batch_x = train_x[bidx_st:bidx_ed].to(self.device)
+                batch_y = train_y[bidx_st:bidx_ed].to(self.device)
+                batch_mask = mask[bidx_st:bidx_ed].to(self.device)
                 n_group  = np.max(num_groups[bidx_st:bidx_ed])
 
                 # proc groups

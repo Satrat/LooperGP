@@ -1,4 +1,4 @@
-model-weights/*
+model-weights/*.tar
 inference-attempts/*
 outputs/*
 fulldataset-song-artist-train_data_XL.npz

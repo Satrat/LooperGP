@@ -200,7 +200,10 @@ class TransformerXL(object):
             df.to_csv(os.path.join(checkpoint_dir, 'loss.csv'), mode='a', header=False,  index=False)
 
     def train(self, train_data, trainConfig, device, resume):
-        checkpoint_dir = trainConfig['experiment_Dir']
+        if self.rank == 0:
+            checkpoint_dir = trainConfig['experiment_Dir']
+        else:
+            checkpoint_dir = None
         batch_size = trainConfig['batch_size']
         data_ROOT = trainConfig['ROOT']
         torch.manual_seed(trainConfig["seed"])

@@ -201,7 +201,7 @@ class TransformerXL(object):
             df.to_csv(os.path.join(checkpoint_dir, 'loss.csv'), mode='a', header=False,  index=False)
 
     def train(self, train_data, trainConfig, device, resume):
-        if self.device == 0:
+        if self.rank == 0:
             checkpoint_dir = trainConfig['experiment_Dir']
             saver_agent = saver.Saver(checkpoint_dir)
         else:

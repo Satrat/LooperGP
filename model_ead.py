@@ -1,4 +1,5 @@
 import sys
+from primers import get_primer_prompt
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -18,6 +19,7 @@ import numpy as np
 
 import saver
 from torch.nn.parallel import DistributedDataParallel as DDP
+from primers import get_primer_prompt
 
 # Constants #
 BEAT_RESOL = 480
@@ -311,44 +313,11 @@ class TransformerXL(object):
         # text string to save into file
         final = str()
 
-        # THE ONE WHO WAS WORKING KINDA GOOD
-        bpm = params['bpm']
-        prompt_e = ['artist:unknown_artist', 'downtune:0', 'tempo:' + str(bpm), 'start', 'new_measure',
-                    'distorted0:note:s6:f0',
-                    'bass:note:s5:f0',
-                    'drums:note:36',
-                    'drums:note:42',
-                    'wait:240']
-
-        prompt_a = ['artist:unknown_artist', 'downtune:0', 'tempo:' + str(bpm), 'start', 'new_measure',
-                    'distorted0:note:s5:f0',
-                    'bass:note:s4:f0',
-                    'drums:note:36',
-                    'drums:note:42',
-                    'wait:240']
-
-        prompt_d = ['artist:unknown_artist', 'downtune:0', 'tempo:' + str(bpm), 'start', 'new_measure',
-                    'distorted0:note:s4:f0',
-                    'bass:note:s3:f0',
-                    'drums:note:36',
-                    'drums:note:42',
-                    'wait:240']
-
-        prompt_empty = ['artist:unknown_artist', 'downtune:0', 'tempo:' + str(bpm), 'start', 'new_measure']
-              
+        bpm = params['bpm']     
         ticks_since_measure = 0
-        primer = params['primer']
-        if primer==1:
-            beg_list = prompt_e
-            ticks_since_measure += 240
-        elif primer == 2:
-            beg_list = prompt_a
-            ticks_since_measure += 240
-        elif primer==3:
-            beg_list = prompt_d
-            ticks_since_measure += 240
-        elif primer==4:
-            beg_list = prompt_empty
+        primer_id = params['primer']
+        beg_list, offset = get_primer_prompt(primer_id, bpm)
+        ticks_since_measure += offset
 
         # FOR THE SPLITTED APPROACH
         others_splitted=[]

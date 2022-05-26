@@ -39,8 +39,8 @@ def main():
         os.mkdir(midi_folder)
 
     # load dictionary
-    event2word = pickle.load(open("vocab_song_artist.pkl", 'rb'))
-    word2event = pickle.load(open("rev_vocab_song_artist.pkl", 'rb'))
+    event2word = pickle.load(open(inferenceConfig['vocab_data_path'], 'rb'))
+    word2event = pickle.load(open(inferenceConfig['rev_vocab_data_path'], 'rb'))
 
     # declare model
     device = torch.device("cuda" if not inferenceConfig["no_cuda"] and torch.cuda.is_available() else "cpu")

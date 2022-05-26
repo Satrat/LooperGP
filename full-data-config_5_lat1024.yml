@@ -28,7 +28,7 @@ MODEL:
 
 
 TRAIN: 
-    data_path: './fulldataset-song-artist-train_data_XL.npz'
+    data_path: './data/fulldataset-song-artist-train_data_XL.npz'
     output_dir: "./outputs/"        # directory for saving model weights
     batch_size: 4  #5
     lr: 0.0001      #0.0002         
@@ -38,16 +38,21 @@ TRAIN:
     no_cuda: False
     resume_training_model: True
     resume_training_model: './model-weights/ep_200.pth.tar'
+    vocab_data_path: './data/vocab_song_artist.pkl'
+    rev_vocab_data_path: './data/rev_vocab_song_artist.pkl'
+
 
 
 INFERENCE:
     num_sample: 5 # the number of songs it will generate
     bpm: 100
     primer: 2
-    num_bars: 16
+    num_bars: 8
     gpuID: '0'
     experiment_dir: './model-weights'      # folder containing model checkpoint
     generated_dir: './inference_attempts'
     checkpoint_type: epoch_idx  # best_train, best_val, epoch_idx
     model_epoch: 200                
     no_cuda: False
+    vocab_data_path: './data/vocab_song_artist.pkl'
+    rev_vocab_data_path: './data/rev_vocab_song_artist.pkl'

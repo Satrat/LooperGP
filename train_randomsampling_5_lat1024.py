@@ -11,8 +11,21 @@ import torch
 #from model_randomsampling import TransformerXL
 from model_ead import TransformerXL
 
+import torch.distributed as dist
+import torch.multiprocessing as mp
 
-def main():
+def setup(rank, world_size):
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '12355'
+
+    # initialize the process group
+    dist.init_process_group("gloo", rank=rank, world_size=world_size)
+
+def cleanup():
+    dist.destroy_process_group()
+
+def main(rank, world_size):
+    setup(rank, world_size)
     # gen config
     modelConfig, trainConfig = get_configs()
 
@@ -45,7 +58,8 @@ def main():
                 trainConfig,
                 device,
                 resume)
-            
+
+    cleanup()
 
 def get_configs():
     cfg = yaml.full_load(open("full-data-config_5_lat1024.yml", 'r')) 
@@ -73,6 +87,11 @@ def get_configs():
 
 
 if __name__ == '__main__':
-    main()
+    #main()
+    world_size = 1
+    mp.spawn(main,
+             args=(world_size,),
+             nprocs=world_size,
+             join=True)
 
 

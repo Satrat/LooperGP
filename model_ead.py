@@ -24,6 +24,7 @@ import pickle
 import numpy as np
 
 import saver
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 # ================================ #
 BEAT_RESOL = 480
@@ -214,6 +215,7 @@ class TransformerXL(object):
         else:
             st_epoch, model = self.get_model()
 
+        model = DDP(model, device_ids=[self.device])
         num_train_steps = int(len(train_data['x']) * trainConfig['num_epochs'])
         optimizer = optim.Adam(model.parameters(), lr=trainConfig['lr'])
         # for scheduling

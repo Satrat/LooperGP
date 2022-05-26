@@ -39,7 +39,7 @@ TRAIN:
     optim: 'adam'    
     no_cuda: False
     resume_training_model: True
-    resume_training_model: '/model-weights/ep_200.pth.tar'
+    resume_training_model: './model-weights/ep_200.pth.tar'
 
 
 INFERENCE:

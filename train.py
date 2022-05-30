@@ -29,8 +29,8 @@ def main(rank, world_size):
     dist.barrier()
 
     # load dictionary
-    event2word = pickle.load(open("vocab_song_artist.pkl", 'rb'))
-    word2event = pickle.load(open("rev_vocab_song_artist.pkl", 'rb'))
+    event2word = pickle.load(open(trainConfig['vocab_data_path'], 'rb'))
+    word2event = pickle.load(open(trainConfig['rev_vocab_data_path'], 'rb'))
 
     # load train data
     training_data = np.load(trainConfig['data_path'])

@@ -4,7 +4,7 @@ python train_randomsampling_5_lat1024.py
 
 Had to reduce batch size from 8 to 4 to avoid running out of GPU memory
 Using model_ead.py instead of model_randomsampling? Check with Pedro about this
-modules.py MemTransformer LMis the actual model implementation. forward line 415
+modules.py MemTransformerLM is the actual model implementation. forward line 415
 
 
 Running Inference
@@ -18,7 +18,7 @@ python dadagp.py decode ../dadaGP-generation/inference-attempts/model_5lat1024_e
 
 Training Data
 fulldataset-song-aritst-train_data_XL.npz is dataset processed for training
-Unprocessed dataset stored in D:/DATA/dadaGP-v1.1
+Unprocessed dataset stored in D:/DATA/dadaGP-v1.1: all the .tokens files are the processed ones
 
 ['x', 'y', 'mask', 'seq_len', 'num_groups']
 x, y, mask dims: (19930, 40, 512)

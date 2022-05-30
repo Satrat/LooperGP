@@ -340,7 +340,7 @@ class TransformerXL(object):
         for ele in beg_list:
             beg_event2word.append(self.event2word[ele])
 
-        words[-1] += beg_event2word
+        words[-1] += beg_event2word #[[2982, 476, 974, 440, 4, 19, 36, 2, 5, 0]]
         final = "\n".join(beg_list) 
         final+='\n'
 
@@ -355,6 +355,7 @@ class TransformerXL(object):
         n_tokens = len(words[0])
         ticks_per_measure = 960 * 4
         bars_to_generate = params['num_bars']
+        measures_since_repeat = 1
         while generate_n_bar < bars_to_generate:
             # prepare input
             if initial_flag:
@@ -363,7 +364,6 @@ class TransformerXL(object):
                 for b in range(batch_size):
                     for z, t in enumerate(words[b]):
                         temp_x[z][b] = t
-                
                 initial_flag = False
             else:
                 temp_x = np.zeros((1, batch_size))
@@ -373,7 +373,7 @@ class TransformerXL(object):
 
             temp_x = torch.from_numpy(temp_x).long().to(self.device)     
             
-            _logits, mems = model.generate(temp_x, *mems)
+            _logits, mems = model.generate(temp_x, *mems) # logits is the probability of each token
             logits = _logits.cpu().squeeze().detach().numpy()
 
             # temperature or not
@@ -384,6 +384,7 @@ class TransformerXL(object):
                 probs = self.temperature(logits=logits, temperature=1.)
 
             word = self.nucleus(probs=probs, p=params['p']) 
+            #print(word, self.word2event[word])
 
             #CONDITION TO TACKLE THE "measure:repeat"
             flag=0
@@ -405,8 +406,27 @@ class TransformerXL(object):
                 probs = self.temperature(logits=logits, temperature=10) #5
                 word = self.nucleus(probs=probs, p=0.99) #0.99
 
-            new_measure = False
             skip_token = False
+            if "measure" in self.word2event[word] and "repeat" in self.word2event[word]:
+                print(self.word2event[word])
+                split_word = self.word2event[word].split(":")
+                if "open" in self.word2event[word]:
+                    print("opening")
+                    measures_since_repeat = 1
+                if "close" in self.word2event[word]:
+                    num_repeats = int(split_word[2])
+                    total_measures = num_repeats * measures_since_repeat
+                    print("closing", measures_since_repeat, num_repeats)
+                    if generate_n_bar + total_measures > bars_to_generate:
+                        skip_token = True
+                    elif measures_since_repeat == 0:
+                        skip_token = True
+                    else:
+                        generate_n_bar += total_measures
+                        print(generate_n_bar, "from repeats")
+                    measures_since_repeat = 0
+
+            new_measure = False
             if 'wait' in self.word2event[word]:
                 split_word = self.word2event[word].split(":")
                 wait_amnt = int(split_word[1])
@@ -433,6 +453,8 @@ class TransformerXL(object):
                 words[0].append(self.event2word[event])
                 final += event + '\n'
                 generate_n_bar += 1
+                print(generate_n_bar)
+                measures_since_repeat += 1
 
 
         temperatura = params['t']

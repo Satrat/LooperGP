@@ -1,48 +1,32 @@
-- full-data-config_5_lat1024.yml
-	
-	main config file with all the parameters for generation and training
+# DadaGP Generation
+WIP to generate loopable phrases using TransformerXL and DadaGP dataset
 
-- fulldataset-song-artist-train_data_XL.npz
+## Layout
 
-	dataset in numpy format, for training
+#### full-data-config_5_lat1024.yml
+main config file with all the parameters for generation and training
 
-- inference_fd5_lat1024.py
-	
-	script for generation, dependent on:
-		- main config file
-		- model weights
-		- dataset vocabulary and reverse vocabulary
+#### model_ead.py
+script for model backbone, adapted from  https://github.com/YatingMusic/compound-word-transformer
 
-- model_ead.py
+#### modules.py
+script for model backbone, adapted from https://github.com/YatingMusic/compound-word-transformer
 
-	script for model backbone, adapted from this repo:
-	https://github.com/YatingMusic/compound-word-transformer
+#### model weights/
+folder where model weights should go, also model config file
 
-- model weights
+#### data/
+folder for storing mappings between token strings and integer IDs, as well as dataset in npz format
 
-	folder containing:
-		- model weights (from epoch 200, the best one we have)
-		- a config file (mostly useless, but necessary for it to run; can be ignored)
+#### util/
+Scripts for converting between DadaGP and GuitarPro formats. Adapted from https://github.com/dada-bots/dadaGP
 
-- modules.py
+#### inference.py
+Script for generation. Depends on the main config file, vocab pickle files, and npz dataset
 
-	script for model backbone, from:
-	https://github.com/YatingMusic/compound-word-transformer
+#### train.py
+Script for training. Depends on the main config file, vocab pickle files, and npz dataset
 
-- rev_vocab_song_artist.pkl
-
-	reverse vocabulary, necessary for training/inference
-
-- train_randomsampling_5_lat1024.py
-
-	script for training, adapted from:
-	https://github.com/YatingMusic/compound-word-transformer
-
-	dependent on:
-		- main config file
-		- dataset vocabulary and reverse vocabulary
-		- dataset in numpy format
-
-- vocab_song_artist.pkl
-
-	vocabulary for the dataset, necessary for training/inference
+## Files that need to be downloaded externally
+* ```data/fulldataset-song-artist-train_data_XL.npz```
+* ```model_weights/ep_200.pth.tar```

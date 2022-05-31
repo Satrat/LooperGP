@@ -1,34 +1,47 @@
-prompt_e = ['artist:unknown_artist', 'downtune:0', 'tempo:' + "BPM_PLACEHOLDER", 'start', 'new_measure',
-                'distorted0:note:s6:f0',
-                'bass:note:s5:f0',
-                'drums:note:36',
-                'drums:note:42',
-                'wait:240']
+HEADER1 = ['artist:unknown_artist', 'downtune:0']
+HEADER2 = ['start', 'new_measure']
 
-prompt_a = ['artist:unknown_artist', 'downtune:0', 'tempo:' + "BPM_PLACEHOLDER", 'start', 'new_measure',
-                'distorted0:note:s5:f0',
-                'bass:note:s4:f0',
-                'drums:note:36',
-                'drums:note:42',
-                'wait:240']
+DISTORTED = "distorted0"
+BASS = "bass"
+DRUMS = "drums"
 
-prompt_d = ['artist:unknown_artist', 'downtune:0', 'tempo:' + "BPM_PLACEHOLDER", 'start', 'new_measure',
-                'distorted0:note:s4:f0',
-                'bass:note:s3:f0',
-                'drums:note:36',
-                'drums:note:42',
-                'wait:240']
+def build_pitched_note(instrument, string, fret):
+        return "{}:note:s{}:f{}".format(instrument, string, fret)
 
-prompt_empty = ['artist:unknown_artist', 'downtune:0', 'tempo:' + "BPM_PLACEHOLDER", 'start', 'new_measure']
+def build_percussion_note(instrument, midi_num):
+        return "{}:note:{}".format(instrument, midi_num)
 
-primer_dict = {
-        1: (prompt_e, 240),
-        2: (prompt_a, 240),
-        3: (prompt_d, 240),
-        4: (prompt_empty, 0)
-}
+def build_primer(bpm, key=None, duration=0):
+        primer = []
+        for val in HEADER1:
+                primer.append(val)
+        primer.append("tempo:{}".format(bpm))
+        for val in HEADER2:
+                primer.append(val)
+        
+        if not key == None:
+                if key == 'e':
+                        primer.append(build_pitched_note(DISTORTED, 6, 0))
+                        primer.append(build_pitched_note(BASS, 5, 0))
+                elif key == 'a':
+                        primer.append(build_pitched_note(DISTORTED, 5, 0))
+                        primer.append(build_pitched_note(BASS, 4, 0))
+                elif key == 'd':
+                        primer.append(build_pitched_note(DISTORTED, 4, 0))
+                        primer.append(build_pitched_note(BASS, 3, 0))
+                else:
+                        print("Unrecognized key {}, defaulting to e".format(key))
+                        primer.append(build_pitched_note(DISTORTED, 6, 0))
+                        primer.append(build_pitched_note(BASS, 5, 0))
+                primer.append(build_percussion_note(DRUMS, 42))
+                primer.append(build_percussion_note(DRUMS, 36))
 
-def get_primer_prompt(primer_id, bpm):
-        primer, offset = primer_dict[primer_id]
-        primer[2] = 'tempo:' + str(bpm)
-        return primer, offset
+                primer.append("wait:{}".format(duration))
+        
+        return primer
+                
+
+#def get_primer_prompt(primer_id, bpm):
+#        primer, offset = primer_dict[primer_id]
+#        primer[2] = 'tempo:' + str(bpm)
+#        return primer, offset

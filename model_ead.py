@@ -1,5 +1,5 @@
+from distutils.command.build import build
 import sys
-from primers import get_primer_prompt
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -19,7 +19,7 @@ import numpy as np
 
 import saver
 from torch.nn.parallel import DistributedDataParallel as DDP
-from primers import get_primer_prompt
+from primers import build_primer
 
 # Constants #
 BEAT_RESOL = 480
@@ -313,11 +313,12 @@ class TransformerXL(object):
         # text string to save into file
         final = str()
 
-        bpm = params['bpm']     
+        bpm = params['bpm']
+        key = params['key']
+        initial_wait = params['initial_wait']     
         ticks_since_measure = 0
-        primer_id = params['primer']
-        beg_list, offset = get_primer_prompt(primer_id, bpm)
-        ticks_since_measure += offset
+        beg_list = build_primer(bpm, key=key, duration=initial_wait)
+        ticks_since_measure += initial_wait
 
         # FOR THE SPLITTED APPROACH
         others_splitted=[]
@@ -406,32 +407,30 @@ class TransformerXL(object):
                 probs = self.temperature(logits=logits, temperature=10) #5
                 word = self.nucleus(probs=probs, p=0.99) #0.99
 
+            # take repeats into account when counting measures
             skip_token = False
             if "measure" in self.word2event[word] and "repeat" in self.word2event[word]:
-                print(self.word2event[word])
                 split_word = self.word2event[word].split(":")
                 if "open" in self.word2event[word]:
-                    print("opening")
                     measures_since_repeat = 1
                 if "close" in self.word2event[word]:
                     num_repeats = int(split_word[2])
                     total_measures = num_repeats * measures_since_repeat
-                    print("closing", measures_since_repeat, num_repeats)
                     if generate_n_bar + total_measures > bars_to_generate:
                         skip_token = True
                     elif measures_since_repeat == 0:
                         skip_token = True
                     else:
                         generate_n_bar += total_measures
-                        print(generate_n_bar, "from repeats")
                     measures_since_repeat = 0
 
+            #enforce time signature
             new_measure = False
             if 'wait' in self.word2event[word]:
                 split_word = self.word2event[word].split(":")
                 wait_amnt = int(split_word[1])
                 if ticks_since_measure + wait_amnt > ticks_per_measure:
-                    new_wait_amnt = ticks_per_measure + wait_amnt - ticks_per_measure
+                    new_wait_amnt = ticks_per_measure - ticks_since_measure
                     word = self.event2word["wait:" + str(new_wait_amnt)]
                     new_measure = True
                     ticks_since_measure = 0
@@ -453,7 +452,6 @@ class TransformerXL(object):
                 words[0].append(self.event2word[event])
                 final += event + '\n'
                 generate_n_bar += 1
-                print(generate_n_bar)
                 measures_since_repeat += 1
 
 

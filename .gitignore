@@ -1,8 +1,9 @@
 model-weights/*.tar
-inference-attempts/*
+inference_attempts/*
 outputs/*
 data/fulldataset-song-artist-train_data_XL.npz
 runtime_stats.json
+util/*/*.gp5
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -58,9 +58,10 @@ def main():
     song_time_list = []
     words_len_list = []
     num_samples = inferenceConfig["num_sample"]
-    primer = inferenceConfig["primer"]
     bpm = inferenceConfig["bpm"]
     num_bars = inferenceConfig["num_bars"]
+    key = inferenceConfig["key"]
+    initial_wait = inferenceConfig["initial_wait"]    
 
     cur_date = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
     experiment_dir = os.path.join(inferenceConfig['generated_dir'],cur_date)
@@ -73,7 +74,7 @@ def main():
         song_time, word_len = model.inference(
             model_path = model_path,
             strategies=['temperature', 'nucleus'],
-            params={'t': 1.2 ,'p': 0.9, 'bpm': bpm, 'primer': primer, 'num_bars':num_bars},
+            params={'t': 1.2 ,'p': 0.9, 'bpm': bpm, 'num_bars':num_bars, 'key':key, 'initial_wait':initial_wait},
             id = idx, 
             output_path=experiment_dir)
             

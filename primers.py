@@ -19,7 +19,13 @@ def build_primer(bpm, key=None, duration=0):
         for val in HEADER2:
                 primer.append(val)
         
-        if not key == None:
+        if key == 't': 
+                text_file = open("primer.txt", "r")
+                lines = text_file.read().split('\n')
+                for line in lines:
+                        primer.append(line)
+                primer.append("new_measure")
+        elif not key == None:
                 if key == 'e':
                         primer.append(build_pitched_note(DISTORTED, 6, 0))
                         primer.append(build_pitched_note(BASS, 5, 0))
@@ -29,6 +35,77 @@ def build_primer(bpm, key=None, duration=0):
                 elif key == 'd':
                         primer.append(build_pitched_note(DISTORTED, 4, 0))
                         primer.append(build_pitched_note(BASS, 3, 0))
+                elif key == 'em':
+                        primer.append(build_pitched_note(DISTORTED, 6, 0)) #E
+                        primer.append(build_pitched_note(DISTORTED, 5, 2)) #B
+                        primer.append(build_pitched_note(DISTORTED, 4, 2)) #E
+                        primer.append(build_pitched_note(BASS, 5, 0)) #E
+                        primer.append("wait:{}".format(480))
+                        primer.append(build_pitched_note(DISTORTED, 6, 0)) #E
+                        primer.append(build_pitched_note(DISTORTED, 5, 2)) #B
+                        primer.append(build_pitched_note(DISTORTED, 4, 2)) #E
+                        primer.append(build_pitched_note(BASS, 5, 0)) #E
+                        primer.append("wait:{}".format(480))
+                        primer.append(build_pitched_note(DISTORTED, 6, 0)) #E
+                        primer.append(build_pitched_note(DISTORTED, 5, 2)) #B
+                        primer.append(build_pitched_note(DISTORTED, 4, 2)) #E
+                        primer.append(build_pitched_note(BASS, 5, 0)) #E
+                        primer.append("wait:{}".format(480))
+                        primer.append(build_pitched_note(DISTORTED, 6, 0)) #E
+                        primer.append(build_pitched_note(DISTORTED, 5, 2)) #B
+                        primer.append(build_pitched_note(DISTORTED, 4, 2)) #E
+                        primer.append(build_pitched_note(BASS, 5, 0)) #E
+                        primer.append("wait:{}".format(480))
+                        primer.append(build_pitched_note(DISTORTED, 6, 0)) #E
+                        primer.append(build_pitched_note(DISTORTED, 5, 2)) #B
+                        primer.append(build_pitched_note(DISTORTED, 4, 2)) #E
+                        primer.append(build_pitched_note(BASS, 5, 0)) #E
+                        primer.append("wait:{}".format(480))
+                        primer.append(build_pitched_note(DISTORTED, 6, 0)) #E
+                        primer.append(build_pitched_note(DISTORTED, 5, 2)) #B
+                        primer.append(build_pitched_note(DISTORTED, 4, 2)) #E
+                        primer.append(build_pitched_note(BASS, 5, 0)) #E
+                        primer.append("wait:{}".format(480))
+                        primer.append(build_pitched_note(DISTORTED, 6, 0)) #E
+                        primer.append(build_pitched_note(DISTORTED, 5, 2)) #B
+                        primer.append(build_pitched_note(DISTORTED, 4, 2)) #E
+                        primer.append(build_pitched_note(BASS, 5, 0)) #E
+                        primer.append("wait:{}".format(480))
+                        primer.append(build_pitched_note(DISTORTED, 6, 0)) #E
+                        primer.append(build_pitched_note(DISTORTED, 5, 2)) #B
+                        primer.append(build_pitched_note(DISTORTED, 4, 2)) #E
+                        primer.append(build_pitched_note(BASS, 5, 0)) #E
+                        primer.append("wait:{}".format(480))
+                        primer.append("new_measure")
+                        primer.append(build_pitched_note(DISTORTED, 6, 0))
+                        primer.append(build_pitched_note(BASS, 5, 0))
+                elif key == 'c':
+                        primer.append(build_pitched_note(DISTORTED, 5, 3)) #C
+                        primer.append(build_pitched_note(DISTORTED, 4, 2)) #E
+                        primer.append(build_pitched_note(DISTORTED, 3, 0)) #G
+                        primer.append(build_pitched_note(BASS, 4, 3)) #C
+                        primer.append("wait:{}".format(960 * 4))
+                        primer.append("new_measure")
+                        primer.append(build_pitched_note(DISTORTED, 6, 3)) #G
+                        primer.append(build_pitched_note(DISTORTED, 5, 2)) #B
+                        primer.append(build_pitched_note(DISTORTED, 4, 0)) #D
+                        primer.append(build_pitched_note(BASS, 5, 3)) #G
+                        primer.append("wait:{}".format(960 * 4))
+                        primer.append("new_measure")
+                        primer.append(build_pitched_note(DISTORTED, 5, 3)) #C
+                        primer.append(build_pitched_note(DISTORTED, 4, 2)) #E
+                        primer.append(build_pitched_note(DISTORTED, 3, 0)) #G
+                        primer.append(build_pitched_note(BASS, 4, 3)) #C
+                        primer.append("wait:{}".format(960 * 4))
+                        primer.append("new_measure")
+                        primer.append(build_pitched_note(DISTORTED, 6, 3)) #G
+                        primer.append(build_pitched_note(DISTORTED, 5, 2)) #B
+                        primer.append(build_pitched_note(DISTORTED, 4, 0)) #D
+                        primer.append(build_pitched_note(BASS, 5, 3)) #G
+                        primer.append("wait:{}".format(960 * 4))
+                        primer.append("new_measure")
+                        primer.append(build_pitched_note(DISTORTED, 5, 3))
+                        primer.append(build_pitched_note(BASS, 4, 3))
                 else:
                         print("Unrecognized key {}, defaulting to e".format(key))
                         primer.append(build_pitched_note(DISTORTED, 6, 0))

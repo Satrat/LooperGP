@@ -351,7 +351,7 @@ class TransformerXL(object):
 
         # generate
         initial_flag = True
-        generate_n_bar = 0
+        generate_n_bar = 0 #since were priming with 0
         batch_size = 1
         n_tokens = len(words[0])
         ticks_per_measure = 960 * 4

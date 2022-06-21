@@ -44,10 +44,10 @@ TRAIN:
 
 
 INFERENCE:
-    num_sample: 5 # the number of songs it will generate
+    num_sample: 10 # the number of songs it will generate
     bpm: 120
-    num_bars: 8
-    key: "em"
+    num_bars: 16
+    key: "c"
     initial_wait: 480 #240 is 16th note, 480 is 8th note etc...
     gpuID: '0'
     experiment_dir: './model-weights'      # folder containing model checkpoint

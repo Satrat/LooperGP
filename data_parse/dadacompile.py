@@ -15,7 +15,7 @@ allfiles_path = os.path.join(root_path,"file_list.json" )
 # GLOBAL VARIABLES FOR PROCESS
 TEST_AMOUNT = 50
 WINDOW_SIZE = 512
-GROUP_SIZE = 40  #15
+GROUP_SIZE = 10  #15
 MIN_LEN = 20
 MAX_LEN = WINDOW_SIZE * GROUP_SIZE
 COMPILE_TARGET = 'XL' # 'linear', 'XL'
@@ -43,6 +43,7 @@ def process(filtered_files, fname=""):
     n_files = len(filtered_files)
 
     # process
+    num_skipped = 0
     for fidx in tqdm.tqdm(range(n_files)):
         
         file = os.path.join(root_path, filtered_files[fidx])
@@ -62,12 +63,14 @@ def process(filtered_files, fname=""):
             except:
                 print("ERROR: Skipping unrecognized token: {}".format(i))
         num_words = len(words)
+        #print(num_words)
 
         if num_words >= MAX_LEN - 2: # 2 for room
-            #print(' [!] too long:', num_words)
+            print(' [!] too long:', num_words)
+            num_skipped += 1
             continue
         if num_words <=MIN_LEN:
-            #print(' [!] too short:', num_words)
+            print(' [!] too short:', num_words)
             continue
 
         # arrange IO
@@ -99,6 +102,7 @@ def process(filtered_files, fname=""):
                             *sorted(zipped, key=lambda x: -x[0])) 
 
     print('\n\n[Finished]')
+    print("SKIPPED ", num_skipped)
     print(' compile target:', COMPILE_TARGET)
 
     if COMPILE_TARGET == 'XL':

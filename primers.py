@@ -25,6 +25,8 @@ def build_primer(bpm, key=None, duration=0):
                 for line in lines:
                         primer.append(line)
                 primer.append("new_measure")
+        elif key == 'blank':
+                pass
         elif not key == None:
                 if key == 'e':
                         primer.append(build_pitched_note(DISTORTED, 6, 0))

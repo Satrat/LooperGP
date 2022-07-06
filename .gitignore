@@ -2,6 +2,7 @@ model-weights/*.tar
 inference_attempts/*
 outputs/*
 data/fulldataset-song-artist-train_data_XL.npz
+data/*.npz
 runtime_stats.json
 #util/*/*.gp5
 

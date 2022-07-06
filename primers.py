@@ -35,7 +35,7 @@ def build_primer(bpm, key=None, duration=0):
                 elif key == 'd':
                         primer.append(build_pitched_note(DISTORTED, 4, 0))
                         primer.append(build_pitched_note(BASS, 3, 0))
-                elif key == 'em':
+                elif key == 'em': #one bar of Em eigth notes
                         primer.append(build_pitched_note(DISTORTED, 6, 0)) #E
                         primer.append(build_pitched_note(DISTORTED, 5, 2)) #B
                         primer.append(build_pitched_note(DISTORTED, 4, 2)) #E
@@ -79,7 +79,7 @@ def build_primer(bpm, key=None, duration=0):
                         primer.append("new_measure")
                         primer.append(build_pitched_note(DISTORTED, 6, 0))
                         primer.append(build_pitched_note(BASS, 5, 0))
-                elif key == 'c':
+                elif key == 'cg': #whole note C chord G chord x 2
                         primer.append(build_pitched_note(DISTORTED, 5, 3)) #C
                         primer.append(build_pitched_note(DISTORTED, 4, 2)) #E
                         primer.append(build_pitched_note(DISTORTED, 3, 0)) #G

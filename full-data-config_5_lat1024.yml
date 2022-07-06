@@ -36,7 +36,7 @@ TRAIN:
     save_freq: 5
     seed: 2222    
     no_cuda: False
-    resume_training_model: True
+    resume_training_model: True #set to false to train from scratch
     resume_training_model: './model-weights/ep_200.pth.tar'
     vocab_data_path: './data/vocab_song_artist.pkl'
     rev_vocab_data_path: './data/rev_vocab_song_artist.pkl'

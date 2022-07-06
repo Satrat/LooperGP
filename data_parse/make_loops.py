@@ -70,15 +70,34 @@ def test_loop_exists(pattern_list, pattern):
 
 def create_track_list(song):
     melody_track_lists = []
+    time_signatures = {}
     for i, track in enumerate(song.tracks):
         melody_list = []
         for measure in track.measures:
             for beat in measure.voices[0].beats:
                 note = MelodyNote(beat.duration, beat.start, measure.start, beat.notes)
                 melody_list.append(note)
+            if i == 0:
+                signature = (measure.timeSignature.numerator, measure.timeSignature.denominator.value)
+                if signature in time_signatures.keys():
+                    time_signatures[signature] += 1
+                else:
+                    time_signatures[signature] = 1
         melody_track_lists.append(melody_list)
         
-    return melody_track_lists
+    return melody_track_lists, time_signatures
+
+def get_dom_beats_per_bar(time_signatures):
+    max_repeats = 0
+    dom_sig = None
+    for k,v in time_signatures.items():
+        if v > max_repeats:
+            max_repeats = v
+            dom_sig = k
+    
+    num, dem = dom_sig
+    ratio = 4.0 / dem
+    return num * ratio
 
 def calc_correlation(track_list, instrument):
     melody_seq = track_list[instrument]
@@ -153,22 +172,34 @@ def convert_gp_loops(song, endpoints):
     end = endpoints[1]
     for inst in range(len(song.tracks)):
         measures = []
+        non_rests = 0
         for measure in song.tracks[inst].measures:
             if measure.start >= start and measure.start < end:
                 measures.append(measure)
+                for beat in measure.voices[0].beats:
+                    for note in beat.notes:
+                        if note.type != guitarpro.NoteType.rest:
+                            non_rests = non_rests + 1
             else:
                 valid_beats = []
                 for beat in measure.voices[0].beats:
                     if beat.start >= start and beat.start < end:
                         valid_beats.append(beat)
+                        for note in beat.notes:
+                            if note.type != guitarpro.NoteType.rest:
+                                non_rests = non_rests + 1
                 if len(valid_beats) > 0:
                     measure.voices[0].beats = valid_beats
                     measures.append(measure)
-            if len(measures) > 0:
-                song.tracks[inst].measures = measures + measures + measures + measures
-                used_tracks.append(song.tracks[inst])
+        if len(measures) > 0 and non_rests > 0:
+            song.tracks[inst].measures = measures + measures + measures + measures + measures + measures + measures + measures
+            used_tracks.append(song.tracks[inst])
+        if inst == 0 and non_rests == 0: #if the loop is just rests, ignore it
+            return None
         
     song.tracks = []
+    if len(used_tracks) == 0:
+        return None
     for track in used_tracks:
         song.tracks.append(track)
     return song

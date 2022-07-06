@@ -275,7 +275,7 @@ def get_tuning_type(instrument_group, strings):
             return "g6_drop"
         elif is_g7drop(strdiff): 
             return "g7_drop"
-    print(instrument_group, strings)
+    #print(instrument_group, strings)
     raise Exception # unsupported        
 assert get_tuning_type("guitar",['E5', 'B4', 'G4', 'D4', 'A3', 'E3']) == "g6_standard"
 assert get_tuning_type("guitar",['E5', 'B4', 'G4', 'D4', 'A3', 'D3']) == "g6_drop"
@@ -357,7 +357,7 @@ def get_measure_tokens(measure):
         # sometimes this is a large value 16383 or 16384
         # For multiple endings for example endings 1-8
         # However pygp doesn't seem to support this
-        print(header.repeatAlternative)
+        #print(header.repeatAlternative)
         if(header.repeatAlternative<=255):
             measure_tokens.append("measure:repeat_alternative:%s" % header.repeatAlternative)
     if(header.repeatClose>0):
@@ -442,7 +442,7 @@ def tokens_to_beat_effect(effect, bfx_tokens):
         t = token.split(":")
         if(t[0]!="bfx"):
             # the first part of the token should be bfx, if it's not, it shouldn't be here, ignore it
-            print("This token shouldn't be here, it's not a BFX", token)
+            #print("This token shouldn't be here, it's not a BFX", token)
             continue
         if t[1]=="fade_in":
             effect.fadeIn = True
@@ -607,7 +607,7 @@ def tokens_to_note_effect(note, nfx_tokens):
         t = token.split(":")
         if(t[0]!="nfx"):
             # the first part of the token should be nfx, if it's not, it shouldn't be here, ignore it
-            print("This token shouldn't be here, it's not a NFX", token)
+            #print("This token shouldn't be here, it's not a NFX", token)
             continue
         if t[1]=="tie":
             note.type = gp.NoteType(2)
@@ -687,7 +687,7 @@ def tokens_to_note_effect(note, nfx_tokens):
         elif t[1]=="tremolo_picking":
             effect.tremoloPicking = gp.TremoloPickingEffect()
             effect.tremoloPicking.duration = gp.Duration.fromTime(int(t[2][8:]))
-            print(token)
+            #print(token)
         elif t[1]=="trill":
             effect.trill = gp.TrillEffect()
             effect.trill.fret = int(t[2][4:])
@@ -716,7 +716,7 @@ def get_instrument_token_prefix(track, tracks_by_group):
             if(track==test):
                 return "clean%s" % i
     else:
-        print(track)
+        #print(track)
         assert False, "This track doesn't belong to a group"        
 # test
 # for t,track in enumerate(song.tracks):
@@ -1855,8 +1855,8 @@ def tokens2guitarpro(all_tokens, verbose=False):
         # timesignatures can go down to 32ths
         d = guitarpro.models.Duration(value=d)
         header.timeSignature = guitarpro.models.TimeSignature(numerator=n,denominator=d)
-        print("measure_clock",measure_clock,end_measure_clock, final_clock)
-        print("Measure:", m, "TS:",n,"/",d,"measure_duration",measure_duration,"thirtysecondths",thirtysecondths)
+        #print("measure_clock",measure_clock,end_measure_clock, final_clock)
+        #print("Measure:", m, "TS:",n,"/",d,"measure_duration",measure_duration,"thirtysecondths",thirtysecondths)
         # header.tempo = tempo # don't use mesaureHeader.tempo it's fucked
         blankgp5.addMeasureHeader(header)
 

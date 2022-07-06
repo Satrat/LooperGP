@@ -430,6 +430,7 @@ class TransformerXL(object):
                 split_word = self.word2event[word].split(":")
                 wait_amnt = int(split_word[1])
                 if ticks_since_measure + wait_amnt > ticks_per_measure:
+                    print(ticks_per_measure, ticks_since_measure)
                     new_wait_amnt = ticks_per_measure - ticks_since_measure
                     word = self.event2word["wait:" + str(new_wait_amnt)]
                     new_measure = True

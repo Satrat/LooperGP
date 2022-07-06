@@ -10,7 +10,7 @@ import copy
 # PATHS
 root_path = "D:\Documents\DATA\DadaGP-Loops"
 save_path = "D:\Documents\DATA\DadaGP-Output"
-allfiles_path = os.path.join(root_path,"_DadaGP_LOOPS_all_filenames.json" )
+allfiles_path = os.path.join(root_path,"file_list.json" )
 
 # GLOBAL VARIABLES FOR PROCESS
 TEST_AMOUNT = 50

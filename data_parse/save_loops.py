@@ -16,8 +16,8 @@ allfiles_path = os.path.join(root_path,"_DadaGP_all_filenames.json" )
 
 # for loops
 MIN_LEN = 4
-MIN_BEATS = 16.0
-MAX_BEATS = 16.0
+MIN_BARS = 4.0
+MAX_BARS = 4.0
 MIN_REP_BEATS = 2.0
 
 # To turn dictionary into .npz files
@@ -44,19 +44,23 @@ def process(filtered_files, fname="", save_loops=True):
 
             list_words = text.split("\n")
             song = loops.convert_from_dadagp(list_words)
-            track_list = loops.create_track_list(song)
+            track_list, time_signatures = loops.create_track_list(song)
+            beats_per_bar = loops.get_dom_beats_per_bar(time_signatures)
+            min_beats = beats_per_bar * MIN_BARS
+            max_beats = beats_per_bar * MAX_BARS
             lead_mat, lead_dur, melody_seq = loops.calc_correlation(track_list, 0) #assuming first instrument is most loopable
-            _, loop_endpoints = loops.get_valid_loops(melody_seq, lead_mat, lead_dur, min_len=MIN_LEN, min_beats=MIN_BEATS, max_beats=MAX_BEATS, min_rep_beats=MIN_REP_BEATS)
+            _, loop_endpoints = loops.get_valid_loops(melody_seq, lead_mat, lead_dur, min_len=MIN_LEN, min_beats=min_beats, max_beats=max_beats, min_rep_beats=MIN_REP_BEATS)
             #print(loop_endpoints)
             for i, endpoints in enumerate(loop_endpoints):
                 new_song = loops.convert_gp_loops(copy.deepcopy(song), endpoints)
-                tokens = dada.guitarpro2tokens(new_song, new_song.artist, verbose=False)
-                if not os.path.exists(os.path.join(save_path, folder_name)):
-                    os.makedirs(os.path.join(save_path, folder_name))
-                token_path = os.path.join(save_path, file_prefix + "_loop" + str(i) + ".txt")
-                dadagp_path = os.path.join(save_path, file_prefix + "_loop" + str(i) + ".gp5")
-                guitarpro.write(new_song, dadagp_path)
-                dada.dadagp_encode(dadagp_path, token_path, song.artist)
+                if new_song is not None:
+                    if not os.path.exists(os.path.join(save_path, folder_name)):
+                        os.makedirs(os.path.join(save_path, folder_name))
+                    token_path = os.path.join(save_path, file_prefix + "_loop" + str(i) + ".txt")
+                    dadagp_path = os.path.join(save_path, file_prefix + "_loop" + str(i) + ".gp5")
+                    guitarpro.write(new_song, dadagp_path)
+                    dada.dadagp_encode(dadagp_path, token_path, song.artist)
+                    file_list.append(file_prefix + "_loop" + str(i) + ".txt")
 
     path_json = os.path.join(save_path, "file_list.json")
     with open(path_json, 'w') as f:

@@ -19,13 +19,13 @@ class MelodyNote:
         if self.is_dotted:
             self.tick_duration = self.tick_duration * 1.5
         
-        self.start_time = start
+        self.start_time = start  #- 960 #GP has a qtr note offset for some reason
         self.on_bar = False
         if self.start_time == bar_start:
             self.on_bar = True
 
-        self.notes = ["0:0"]
-        self.note_types = [guitarpro.NoteType.rest]
+        self.notes = set(["0:0"])
+        self.note_types = set([guitarpro.NoteType.rest])
         if len(note_list) > 0: #not a rest
             self.notes = set([f"{n.string}:{n.value}" for n in note_list])
             self.note_types = set([n.type for n in note_list])
@@ -47,6 +47,12 @@ class MelodyNote:
         
         return True
     
+def is_empty_pattern(p):
+    for melody in p:
+        if melody.note_types !=set([guitarpro.NoteType.rest]):
+            return False
+    return True
+
 def compare_patterns(p1, p2): #new pattern, existing pattern
     if len(p1) < len(p2):
         for i in range(len(p1)):
@@ -75,7 +81,7 @@ def create_track_list(song):
         melody_list = []
         for measure in track.measures:
             for beat in measure.voices[0].beats:
-                note = MelodyNote(beat.duration, beat.start, measure.start, beat.notes)
+                note = MelodyNote(beat.duration, beat.start - 960, measure.start - 960, beat.notes)
                 melody_list.append(note)
             if i == 0:
                 signature = (measure.timeSignature.numerator, measure.timeSignature.denominator.value)
@@ -153,7 +159,7 @@ def get_valid_loops(melody_seq, corr_mat, corr_dur, min_len=4, min_beats=16.0, m
         duration = corr_dur[x,y] / 960.0
         end = y - corr_mat[x,y] + 1
         
-        if duration >= min_rep_beats and melody_seq[beginning].on_bar:
+        if duration >= min_rep_beats and melody_seq[beginning].on_bar and not is_empty_pattern(melody_seq[beginning:end]):
             loop = melody_seq[beginning:end]
             exist_result = test_loop_exists(loops, loop)
             if exist_result == None:
@@ -166,6 +172,38 @@ def get_valid_loops(melody_seq, corr_mat, corr_dur, min_len=4, min_beats=16.0, m
     
     return loops, loop_bp
 
+def unify_loops(token_list, loop_bp, num_measures):
+    if len(loop_bp) == 0:
+        return None
+
+    final_list = token_list[0:4] #header tokens
+    timestamp = 0
+    loop_idx = 0
+    pts = loop_bp[loop_idx]
+    measure_idx = 0
+    for i in range(4, len(token_list)):
+        t = token_list[i]
+        if timestamp >= pts[0] and timestamp < pts[1] and "repeat" not in t:
+            final_list.append(t)
+            if t == "new_measure":
+                if measure_idx == 0:
+                    final_list.append("measure:repeat_open")
+                if measure_idx == num_measures - 1:
+                    final_list.append("measure:repeat_close:1")
+                measure_idx += 1
+        if "wait:" in t:
+            timestamp += int(t[5:])
+        if timestamp >= pts[1]:
+            loop_idx += 1
+            measure_idx = 0
+            if loop_idx >= len(loop_bp):
+                break
+            pts = loop_bp[loop_idx]
+    final_list.append("end")
+    return final_list
+
+
+
 def convert_gp_loops(song, endpoints):
     used_tracks = []
     start = endpoints[0]
@@ -174,6 +212,10 @@ def convert_gp_loops(song, endpoints):
         measures = []
         non_rests = 0
         for measure in song.tracks[inst].measures:
+            measure.header.isRepeatOpen = False
+            measure.header.repeatAlternative = 0
+            measure.header.repeatClose = -1
+            
             if measure.start >= start and measure.start < end:
                 measures.append(measure)
                 for beat in measure.voices[0].beats:
@@ -191,8 +233,9 @@ def convert_gp_loops(song, endpoints):
                 if len(valid_beats) > 0:
                     measure.voices[0].beats = valid_beats
                     measures.append(measure)
+
         if len(measures) > 0 and non_rests > 0:
-            song.tracks[inst].measures = measures + measures + measures + measures + measures + measures + measures + measures
+            song.tracks[inst].measures = measures # + measures + measures + measures + measures + measures + measures + measures
             used_tracks.append(song.tracks[inst])
         if inst == 0 and non_rests == 0: #if the loop is just rests, ignore it
             return None
@@ -201,5 +244,7 @@ def convert_gp_loops(song, endpoints):
     if len(used_tracks) == 0:
         return None
     for track in used_tracks:
+        track.measures[0].header.isRepeatOpen = True
+        track.measures[len(track.measures) - 1].header.repeatClose = 1
         song.tracks.append(track)
     return song

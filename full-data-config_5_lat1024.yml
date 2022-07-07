@@ -28,7 +28,7 @@ MODEL:
 
 
 TRAIN: 
-    data_path: './data/splitted_train_data_XL.npz'
+    data_path: "D:\\Documents\\DATA\\DadaGP-Output-repeats\\splitted_train_data_XL.npz"
     output_dir: "./outputs/"        # directory for saving model weights
     batch_size: 4  #5
     lr: 0.0001      #0.0002         
@@ -36,8 +36,8 @@ TRAIN:
     save_freq: 5
     seed: 2222    
     no_cuda: False
-    resume_training_model: True
-    resume_training_model: './model-weights/ep_50.pth.tar'
+    resume_training_model: None
+    #resume_training_model: './model-weights/ep_50.pth.tar'
     vocab_data_path: './data/vocab_song_artist.pkl'
     rev_vocab_data_path: './data/rev_vocab_song_artist.pkl'
 

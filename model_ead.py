@@ -201,7 +201,7 @@ class TransformerXL(object):
         else:
             st_epoch, model = self.get_model()
 
-        model = DDP(model, device_ids=[self.rank + 1])
+        model = DDP(model, device_ids=[self.rank])
         optimizer = optim.Adam(model.parameters(), lr=trainConfig['lr'])
        
         epoch_train_loss = []

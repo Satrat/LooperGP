@@ -11,7 +11,7 @@ import guitarpro
 
 # PATHS
 root_path = "D:\Documents\DATA\DadaGP-v1.1"
-save_path = "D:\Documents\DATA\DadaGP-Loops-repeats-2"
+save_path = "D:\Documents\DATA\DadaGP-Loops-many"
 allfiles_path = os.path.join(root_path,"_DadaGP_all_filenames.json" )
 
 # To turn dictionary into .npz files
@@ -42,28 +42,36 @@ def process(filtered_files, fname=""):
         length_dict = {}
         open_reps = []
         curr_length = 0
+        curr_notes = 0
         for i in range(num_words-2):
             t = list_words[i]
+            if "note" in t:
+                curr_notes += 1
             if t == "new_measure":
                 curr_length += 1
                 if list_words[i+1] == "measure:repeat_open":
                     curr_length = 1
+                    curr_notes = 0
                     open_reps.append(i)
                     endpoint_dict[i] = -1
                 if "measure:repeat_close" in list_words[i+1] or "measure:repeat_close" in list_words[i+2]:
                     if len(open_reps) > 0:
                         idx = open_reps.pop(len(open_reps) - 1)
                         endpoint_dict[idx] = i
-                        length_dict[idx] = curr_length
+                        length_dict[idx] = (curr_length, curr_notes)
                     elif len(endpoint_dict) == 0:
                         endpoint_dict[0] = i
-                        length_dict[0] = curr_length
+                        length_dict[0] = (curr_length, curr_notes)
 
         if len(endpoint_dict) > 0:
             final_list = list_words[0:4]
             for start in endpoint_dict.keys():
                 end = endpoint_dict[start]
-                if end <= 0 or length_dict[start] != 4:
+                if end <= 0:
+                    continue
+                length_meas = length_dict[start][0]
+                length_notes = length_dict[start][1]
+                if length_meas < 4 or length_meas > 16 or length_notes < 4 * length_meas:
                     continue
 
                 end += 1
@@ -74,7 +82,7 @@ def process(filtered_files, fname=""):
                 if end > start:
                     final_list += list_words[start:end]
 
-            if len(final_list) > 40:
+            if len(final_list) > 50:
                 if final_list[len(final_list) - 1] != "end":
                     final_list.append("end")
 

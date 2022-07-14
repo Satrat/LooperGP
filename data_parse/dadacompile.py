@@ -8,15 +8,15 @@ import make_loops as loops
 import copy
 
 # PATHS
-root_path = "D:\Documents\DATA\DadaGP-Loops-repeats-2"
-save_path = "D:\Documents\DATA\DadaGP-Output-repeats"
+root_path = "D:\Documents\DATA\DadaGP-Loops-many"
+save_path = "D:\Documents\DATA\DadaGP-Output-many"
 allfiles_path = os.path.join(root_path,"file_list.json" ) 
 allfiles_path2 = os.path.join(root_path,"file_list2.json" ) 
 # GLOBAL VARIABLES FOR PROCESS
 TEST_AMOUNT = 50
 WINDOW_SIZE = 512
-GROUP_SIZE = 5  #15
-MIN_LEN = 40
+GROUP_SIZE = 20  #15
+MIN_LEN = 60
 MAX_LEN = WINDOW_SIZE * GROUP_SIZE
 COMPILE_TARGET = 'XL' # 'linear', 'XL'
 print('[config] MAX_LEN:', MAX_LEN)
@@ -127,7 +127,7 @@ def process(filtered_files, fname=""):
     print(' > mask_final:', mask_final.shape)
 
     # split train/test
-    size = int(0.15*len(name_list))
+    size = int(0.05*len(name_list))
 
     validation_songs = random.sample(name_list, size)
 

@@ -1,5 +1,5 @@
 HEADER1 = ['artist:unknown_artist', 'downtune:0']
-HEADER2 = ['start', 'new_measure']
+HEADER2 = ['start', 'new_measure', 'measure:repeat_open']
 
 DISTORTED = "distorted0"
 BASS = "bass"
@@ -20,7 +20,7 @@ def build_primer(bpm, key=None, duration=0):
                 primer.append(val)
         
         if key == 't': 
-                text_file = open("primer.txt", "r")
+                text_file = open("primer_blank.txt", "r")
                 lines = text_file.read().split('\n')
                 for line in lines:
                         primer.append(line)

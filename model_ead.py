@@ -107,7 +107,11 @@ class TransformerXL(object):
         #mode
         self.is_training = is_training
         self.rank = device_rank
-        self.device = "cuda:" + str(self.rank)
+        if not torch.cuda.is_available():
+            self.device = "cpu"
+        else:
+            self.device = "cuda:" + str(self.rank)
+        print(self.device)
         
 
     def init_weight(self, weight):
@@ -469,6 +473,139 @@ class TransformerXL(object):
 
         song_total_time = time.time() - song_init_time
         return song_total_time, len(words[0])
+
+    def inference_single_from_primer(self, model_path, strategies, params, primer):
+        _, model = self.get_model(model_path)
+        model.eval()
+        
+        # initial start
+        words = [[]]
+
+        # text string to save into file
+        final = str()
+    
+        ticks_since_measure = 0
+        beg_list = primer
+
+        # FOR THE SPLITTED APPROACH
+        others_splitted=[]
+        for i in beg_list:
+            token = i
+            if ":" in token:
+                token = token.split(":")
+                h_tokens=[]
+                for i in token[:-1]:
+                    h_tokens.append(i+":")
+                h_tokens.append(token[-1])
+                others_splitted+=h_tokens
+            else: 
+                others_splitted.append(token)
+        
+        print("Primer: {}".format(beg_list))
+
+
+        beg_event2word = list()
+        for ele in beg_list:
+            beg_event2word.append(self.event2word[ele])
+
+        words[-1] += beg_event2word #[[2982, 476, 974, 440, 4, 19, 36, 2, 5, 0]]
+        final = "\n".join(beg_list) 
+        final+='\n'
+
+        # initialize mem
+        mems = tuple()
+        song_init_time = time.time()
+
+        # generate
+        initial_flag = True
+        generate_n_bar = 0 #since were priming with 0
+        batch_size = 1
+        n_tokens = len(words[0])
+        ticks_per_measure = 960 * 4
+        bars_to_generate = params['num_bars']
+        measures_since_repeat = 1
+        while generate_n_bar < bars_to_generate:
+            # prepare input
+            if initial_flag:
+                temp_x = np.zeros((len(words[0]), batch_size))
+
+                for b in range(batch_size):
+                    for z, t in enumerate(words[b]):
+                        temp_x[z][b] = t
+                initial_flag = False
+            else:
+                temp_x = np.zeros((1, batch_size))
+                
+                for b in range(batch_size):
+                    temp_x[0][b] = words[b][-1] ####?####
+
+            temp_x = torch.from_numpy(temp_x).long().to(self.device)     
+            
+            _logits, mems = model.generate(temp_x, *mems) # logits is the probability of each token
+            logits = _logits.cpu().squeeze().detach().numpy()
+
+            # temperature or not
+            if 'temperature' in strategies:
+                probs = self.temperature(logits=logits, temperature=params['t'])
+                
+            else:
+                probs = self.temperature(logits=logits, temperature=1.)
+
+            word = self.nucleus(probs=probs, p=params['p']) 
+            #print(word, self.word2event[word])
+
+            #CONDITION TO TACKLE THE "measure:repeat"
+            flag=0
+            while flag==0:
+                if  "measure" in self.word2event[word] and "repeat" in self.word2event[word] and len(self.word2event[word].split(":"))>2 and int(self.word2event[word].split(":")[-1])>4:
+                    probs = self.temperature(logits=logits, temperature=10) #10
+                    word = self.nucleus(probs=probs, p=0.9) #0.99
+                else:
+                    flag=1
+
+            # CONDITION TO TACKLE THE "artist:"
+            # which seems to pop up if the prompt is empty (?)
+            if 'artist' in self.word2event[word]:
+                probs = self.temperature(logits=logits, temperature=10) #10
+                word = self.nucleus(probs=probs, p=0.99) #0.99
+
+            # CONDITION TO TACKLE THE "end"
+            if self.word2event[word] == 'end':
+                probs = self.temperature(logits=logits, temperature=10) #5
+                word = self.nucleus(probs=probs, p=0.99) #0.99
+
+            #enforce time signature
+            new_measure = False
+            if 'wait' in self.word2event[word]:
+                split_word = self.word2event[word].split(":")
+                wait_amnt = int(split_word[1])
+                if ticks_since_measure + wait_amnt > ticks_per_measure:
+                    print(ticks_per_measure, ticks_since_measure)
+                    new_wait_amnt = ticks_per_measure - ticks_since_measure
+                    word = self.event2word["wait:" + str(new_wait_amnt)]
+                    new_measure = True
+                    ticks_since_measure = 0
+                elif ticks_since_measure + wait_amnt == ticks_per_measure:
+                    new_measure = True
+                    ticks_since_measure = 0
+                else:
+                    ticks_since_measure += wait_amnt
+            elif "new_measure" == self.word2event[word]:
+                skip_token = True
+            elif "tempo" in self.word2event[word]:
+                skip_token = True
+            
+            if not skip_token:
+                words[0].append(word)
+                final += self.word2event[word] + '\n'
+            if new_measure:
+                event = 'new_measure'
+                words[0].append(self.event2word[event])
+                final += event + '\n'
+                generate_n_bar += 1
+                measures_since_repeat += 1
+        
+        return final.split('\n')
 
     ########################################
     # search strategy: temperature (re-shape)

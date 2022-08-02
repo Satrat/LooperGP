@@ -14,7 +14,7 @@ MODEL:
   d_model: 1024
   div_val: 1
   dropatt: 0.0
-  dropout: 0.1
+  dropout: 0.15
   emb_init: normal
   emb_init_range: 0.01
   eval_tgt_len: 50

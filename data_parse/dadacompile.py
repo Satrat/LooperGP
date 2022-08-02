@@ -8,17 +8,16 @@ import make_loops as loops
 import copy
 
 # PATHS
-root_path = "D:\Documents\DATA\DadaGP-Loops-many"
-save_path = "D:\Documents\DATA\DadaGP-Output-many"
-allfiles_path = os.path.join(root_path,"file_list.json" ) 
-allfiles_path2 = os.path.join(root_path,"file_list2.json" ) 
+root_path = "D:\Documents\DATA\DadaGP-4-8-lps-3-dens-per-inst-hard-reps" #"D:\Documents\DATA\DadaGP-Loops-many"
+save_path = "D:\Documents\DATA\DadaGP-4-8-lps-3-dens-per-inst-hard-reps" #"D:\Documents\DATA\DadaGP-Output-many"
+allfiles_path = os.path.join(root_path,"file_list_loops.json" ) 
 # GLOBAL VARIABLES FOR PROCESS
-TEST_AMOUNT = 50
 WINDOW_SIZE = 512
-GROUP_SIZE = 20  #15
+GROUP_SIZE = 12  #15
 MIN_LEN = 60
 MAX_LEN = WINDOW_SIZE * GROUP_SIZE
 COMPILE_TARGET = 'XL' # 'linear', 'XL'
+VAL_SPLIT = 0.15
 print('[config] MAX_LEN:', MAX_LEN)
 
 
@@ -127,7 +126,7 @@ def process(filtered_files, fname=""):
     print(' > mask_final:', mask_final.shape)
 
     # split train/test
-    size = int(0.05*len(name_list))
+    size = int(VAL_SPLIT*len(name_list))
 
     validation_songs = random.sample(name_list, size)
 
@@ -193,10 +192,6 @@ if __name__ == '__main__':
 
     with open(allfiles_path, "r") as f:
         allfiles =  json.load(f)
-    with open(allfiles_path2, "r") as f:
-        allfiles2 = json.load(f)
 
-    print(len(allfiles), len(allfiles2))
-    allfiles = allfiles + allfiles2
     print(len(allfiles))
     process(allfiles, "None")

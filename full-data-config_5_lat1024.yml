@@ -2,7 +2,7 @@
 MODEL:
     n_head: 8
     n_layer: 10         #12
-    dropout: 0.1
+    dropout: 0.15         #SARA changed from 0.1
     d_inner: 4096        #d_ff prev 2048
     d_embed: 512
     d_model: 1024        # prev 768
@@ -28,16 +28,17 @@ MODEL:
 
 
 TRAIN: 
-    data_path: "D:\\Documents\\DATA\\DadaGP-Output-many\\splitted_train_data_XL.npz"
+    data_path: "D:\\Documents\\DATA\\DadaGP-4-8-lps-3-dens-per-inst-hard-reps\\splitted_train_data_XL.npz"
+    val_path: "D:\\Documents\\DATA\\DadaGP-4-8-lps-3-dens-per-inst-hard-reps\\splitted_test_data_XL.npz"
     output_dir: "./outputs/"        # directory for saving model weights
-    batch_size: 4  #5
+    batch_size: 4
     lr: 0.0001      #0.0002         
-    num_epochs: 200
-    save_freq: 5
+    num_epochs: 100
+    save_freq: 2
     seed: 2222    
     no_cuda: False
     resume_training_model: None
-    #resume_training_model: './model-weights/ep_50.pth.tar'
+    #resume_training_model: './outputs/5_lat102420220714-235039/ep_40.pth.tar'
     vocab_data_path: './data/vocab_song_artist.pkl'
     rev_vocab_data_path: './data/rev_vocab_song_artist.pkl'
 
@@ -50,10 +51,10 @@ INFERENCE:
     key: "a"
     initial_wait: 240 #240 is 16th note, 480 is 8th note etc...
     gpuID: '0'
-    experiment_dir: './model-weights'      # folder containing model checkpoint
+    experiment_dir: './outputs/5_lat102420220714-235039'      # folder containing model checkpoint
     generated_dir: './inference_attempts'
     checkpoint_type: epoch_idx  # best_train, best_val, epoch_idx
-    model_epoch: 20                
+    model_epoch: 50                
     no_cuda: False
     vocab_data_path: './data/vocab_song_artist.pkl'
     rev_vocab_data_path: './data/rev_vocab_song_artist.pkl'

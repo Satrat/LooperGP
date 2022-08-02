@@ -34,6 +34,7 @@ def main(rank, world_size):
 
     # load train data
     training_data = np.load(trainConfig['data_path'])
+    validation_data = np.load(trainConfig['val_path'])
     
     # load trained model config
     resume = trainConfig['resume_training_model']
@@ -48,6 +49,7 @@ def main(rank, world_size):
 
     # train
     model.train(training_data,
+                validation_data,
                 trainConfig,
                 resume)
 

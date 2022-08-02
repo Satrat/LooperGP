@@ -11,14 +11,14 @@ import guitarpro
 
 # PATHS
 root_path = "D:\Documents\DATA\DadaGP-v1.1"
-save_path = "D:\Documents\DATA\DadaGP-all-loops"
+save_path = "D:\Documents\DATA\DadaGP-4-8-lps-3-dens-per-inst-hard-reps"
 allfiles_path = os.path.join(root_path,"_DadaGP_all_filenames.json" )
 
 # for loops
 MIN_LEN = 4
 MIN_BARS = 4.0
-MAX_BARS = 16.0
-MIN_REP_BEATS = 2.0
+MAX_BARS = 8.0
+MIN_REP_BEATS = 3.0
 
 # To turn dictionary into .npz files
 file_list = []
@@ -52,24 +52,26 @@ def process(filtered_files, fname=""):
         _, loop_endpoints = loops.get_valid_loops(melody_seq, lead_mat, lead_dur, min_len=MIN_LEN, min_beats=min_beats, max_beats=max_beats, min_rep_beats=MIN_REP_BEATS)
         if len(loop_endpoints) > 0:
             print(file_prefix)
-            token_list = loops.unify_loops(list_words, loop_endpoints) #TODO: bad to hardcode loop len
-            print(len(token_list))
-            token_list_repeats = loops.get_repeats(list_words)
-            print(len(token_list_repeats))
-            token_list = token_list + token_list_repeats
-            if len(token_list) > 5:
-                if token_list[len(token_list) - 1] != "end":
-                    token_list.append("end")
-                if not os.path.exists(os.path.join(save_path, folder_name)):
-                    os.makedirs(os.path.join(save_path, folder_name))
-                token_path = os.path.join(save_path, file_prefix + "_loops" + ".txt")
-                dadagp_path = os.path.join(save_path, file_prefix + "_loops" + ".gp5")
+            loop_list = loops.unify_loops(list_words, loop_endpoints, density=3) #TODO: bad to hardcode loop len
+            print(len(loop_list))
+            #loop_list_repeats = loops.get_repeats(list_words, min_meas=MIN_BARS,max_meas=MAX_BARS,density=3)
+            #print(len(loop_list_repeats))
+            #loop_list = loop_list + loop_list_repeats
+            header = list_words[0:4]
+            footer = ["end"]
+            if len(loop_list) > 0:
+                for idx, loop in enumerate(loop_list):
+                    loop = header + loop + footer
+                    if not os.path.exists(os.path.join(save_path, folder_name)):
+                        os.makedirs(os.path.join(save_path, folder_name))
+                    token_path = os.path.join(save_path, file_prefix + "_" + str(idx) + "_loops" + ".txt")
+                    dadagp_path = os.path.join(save_path, file_prefix + "_" + str(idx) + "_loops" + ".gp5")
                 #print(len(token_path))
-                f = open(token_path, "w")
-                f.write("\n".join(token_list))
-                f.close()
-                dada.dadagp_decode(token_path, dadagp_path)
-                file_list.append(file_prefix + "_loops" + ".txt")
+                    f = open(token_path, "w")
+                    f.write("\n".join(loop))
+                    f.close()
+                    dada.dadagp_decode(token_path, dadagp_path)
+                    file_list.append(file_prefix + "_" + str(idx) + "_loops" + ".txt")
         #for i, endpoints in enumerate(loop_endpoints):
         #    new_song = loops.convert_gp_loops(copy.deepcopy(song), endpoints)
         #    if new_song is not None:

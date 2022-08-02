@@ -4,6 +4,7 @@ import sys
 import dadagp as dada
 import numpy as np
 import os
+import copy
 
 def convert_from_dadagp(tokens):
     song = dada.tokens2guitarpro(tokens, verbose=False)
@@ -173,20 +174,23 @@ def get_valid_loops(melody_seq, corr_mat, corr_dur, min_len=4, min_beats=16.0, m
     
     return loops, loop_bp
 
-def unify_loops(token_list, loop_bp):
+def filter_loops_density(token_list, loop_bp, density=3):
     if len(loop_bp) == 0:
-        return None
-
-    final_list = token_list[0:4] #header tokens
+        return []
+    
+    final_endpoints = []
     for pts in loop_bp:
-        #print(pts)
         num_meas = 0
         timestamp = 0
-        num_notes = 0
+        num_notes = {}
         for i in range(len(token_list)):
             t = token_list[i]
             if "note" in t:
-                num_notes += 1
+                instrument = t.split(":")[0]
+                if instrument not in num_notes:
+                    num_notes[instrument] = 1
+                else:
+                    num_notes[instrument] += 1
             if timestamp >= pts[0] and timestamp < pts[1]:
                 if t == "new_measure":
                     num_meas += 1
@@ -196,27 +200,73 @@ def unify_loops(token_list, loop_bp):
             if timestamp >= pts[1]:
                 break
 
-        if num_notes < 8 * num_meas:
+        total_notes = 0
+        for inst in num_notes.keys():
+            total_notes += num_notes[inst]
+        curr_density = total_notes * 1.0 / len(num_notes)
+
+        if curr_density >= density * num_meas:
+            final_endpoints.append(pts)
+
+    return final_endpoints
+
+
+def unify_loops(token_list, loop_bp, density=8):
+    if len(loop_bp) == 0:
+        return None
+
+    #final_list = token_list[0:4] #header tokens
+    final_list = []
+    for pts in loop_bp:
+        #print(pts)
+        num_meas = 0
+        timestamp = 0
+        num_notes = {}
+        for i in range(len(token_list)):
+            t = token_list[i]
+            if "note" in t:
+                instrument = t.split(":")[0]
+                if instrument not in num_notes:
+                    num_notes[instrument] = 1
+                else:
+                    num_notes[instrument] += 1
+            if timestamp >= pts[0] and timestamp < pts[1]:
+                if t == "new_measure":
+                    num_meas += 1
+                    #print(num_meas, timestamp)
+            if "wait:" in t:
+                timestamp += int(t[5:])
+            if timestamp >= pts[1]:
+                break
+
+        total_notes = 0
+        for inst in num_notes.keys():
+            total_notes += num_notes[inst]
+        curr_density = total_notes * 1.0 / len(num_notes)
+
+        if curr_density < density * num_meas:
             #("SKIP")
             continue
 
         timestamp = 0
         measure_idx = 0
+        curr_list = []
         #(pts, num_meas)
         for i in range(4, len(token_list)):
             t = token_list[i]
             if timestamp >= pts[0] and timestamp < pts[1] and "repeat" not in t:
-                final_list.append(t)
+                curr_list.append(t)
                 if t == "new_measure":
-                    if measure_idx == 0:
-                        final_list.append("measure:repeat_open")
-                    if measure_idx == num_meas - 1:
-                        final_list.append("measure:repeat_close:1")
+                    #if measure_idx == 0:
+                    #    curr_list.append("measure:repeat_open")
+                    #if measure_idx == num_meas - 1:
+                    #    curr_list.append("measure:repeat_close:1")
                     measure_idx += 1
             if "wait:" in t:
                 timestamp += int(t[5:])
             if timestamp >= pts[1]:
                 break
+        final_list.append((curr_list + curr_list + curr_list + curr_list).copy())
 
     #final_list.append("end")
     return final_list
@@ -268,32 +318,43 @@ def convert_gp_loops(song, endpoints):
         song.tracks.append(track)
     return song
 
-def get_repeats(list_words):
+def get_repeats(list_words,min_meas=4,max_meas=16,density=8):
     num_words = len(list_words)
     endpoint_dict = {}
     length_dict = {}
     open_reps = []
     curr_length = 0
-    curr_notes = 0
+    curr_notes = {}
     for i in range(num_words-2):
         t = list_words[i]
         if "note" in t:
-            curr_notes += 1
+            instrument = t.split(":")[0]
+            if instrument not in curr_notes:
+                curr_notes[instrument] = 1
+            else:
+                curr_notes[instrument] += 1
         if t == "new_measure":
             curr_length += 1
             if list_words[i+1] == "measure:repeat_open":
                 curr_length = 1
-                curr_notes = 0
+                curr_notes = {}
                 open_reps.append(i)
                 endpoint_dict[i] = -1
             if "measure:repeat_close" in list_words[i+1] or "measure:repeat_close" in list_words[i+2]:
+                total_notes = 0
+                for inst in curr_notes.keys():
+                    total_notes += curr_notes[inst]
+                if len(curr_notes) == 0:
+                    curr_density = 0.0
+                else:
+                    curr_density = total_notes * 1.0 / len(curr_notes)
                 if len(open_reps) > 0:
                     idx = open_reps.pop(len(open_reps) - 1)
                     endpoint_dict[idx] = i
-                    length_dict[idx] = (curr_length, curr_notes)
+                    length_dict[idx] = (curr_length, curr_density)
                 elif len(endpoint_dict) == 0:
                     endpoint_dict[0] = i
-                    length_dict[0] = (curr_length, curr_notes)
+                    length_dict[0] = (curr_length, curr_density)
 
     final_list = []
     if len(endpoint_dict) > 0:
@@ -304,7 +365,7 @@ def get_repeats(list_words):
                 continue
             length_meas = length_dict[start][0]
             length_notes = length_dict[start][1]
-            if length_meas < 4 or length_meas > 16 or length_notes < 8 * length_meas:
+            if length_meas < min_meas or length_meas > max_meas or length_notes < density * length_meas:
                 continue
 
             end += 1
@@ -313,6 +374,58 @@ def get_repeats(list_words):
                     break
                 end += 1
             if end > start:
-                final_list += list_words[start:end]
+                final_list.append((list_words[start:end] + list_words[start:end] + list_words[start:end] + list_words[start:end]).copy())
     
     return final_list
+
+def get_num_repeats(list_words,min_meas=4,max_meas=16,density=8):
+    num_words = len(list_words)
+    endpoint_dict = {}
+    length_dict = {}
+    open_reps = []
+    curr_length = 0
+    curr_notes = {}
+    for i in range(num_words-2):
+        t = list_words[i]
+        if "note" in t:
+            instrument = t.split(":")[0]
+            if instrument not in curr_notes:
+                curr_notes[instrument] = 1
+            else:
+                curr_notes[instrument] += 1
+        if t == "new_measure":
+            curr_length += 1
+            if list_words[i+1] == "measure:repeat_open":
+                curr_length = 1
+                curr_notes = {}
+                open_reps.append(i)
+                endpoint_dict[i] = -1
+            if "measure:repeat_close" in list_words[i+1] or "measure:repeat_close" in list_words[i+2]:
+                total_notes = 0
+                for inst in curr_notes.keys():
+                    total_notes += curr_notes[inst]
+                if len(curr_notes) == 0:
+                    curr_density = 0.0
+                else:
+                    curr_density = total_notes * 1.0 / len(curr_notes)
+                if len(open_reps) > 0:
+                    idx = open_reps.pop(len(open_reps) - 1)
+                    endpoint_dict[idx] = i
+                    length_dict[idx] = (curr_length, curr_density)
+                elif len(endpoint_dict) == 0:
+                    endpoint_dict[0] = i
+                    length_dict[0] = (curr_length, curr_density)
+
+    num_repeats = 0
+    for start in endpoint_dict.keys():
+        end = endpoint_dict[start]
+        if end <= 0:
+            continue
+        length_meas = length_dict[start][0]
+        length_notes = length_dict[start][1]
+        if length_meas < min_meas or length_meas > max_meas or length_notes < density * length_meas:
+            continue
+
+        num_repeats += 1
+    
+    return num_repeats

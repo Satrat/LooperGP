@@ -1,4 +1,5 @@
 from distutils.command.build import build
+#from ssl import VERIFY_ALLOW_PROXY_CERTS
 import sys
 import torch
 import torch.nn as nn
@@ -187,7 +188,7 @@ class TransformerXL(object):
         else:
             df.to_csv(os.path.join(checkpoint_dir, 'loss.csv'), mode='a', header=False,  index=False)
 
-    def train(self, train_data, trainConfig, resume):
+    def train(self, train_data, val_data, trainConfig, resume):
         if self.rank == 0:
             checkpoint_dir = trainConfig['experiment_dir']
             saver_agent = saver.Saver(checkpoint_dir)
@@ -209,6 +210,7 @@ class TransformerXL(object):
         optimizer = optim.Adam(model.parameters(), lr=trainConfig['lr'])
        
         epoch_train_loss = []
+        epoch_val_loss = []
         save_freq = trainConfig['save_freq']
         
         n_parameters = network_paras(model)
@@ -223,8 +225,17 @@ class TransformerXL(object):
         mask = train_data['mask'] 
         num_groups = train_data['num_groups'] 
 
+        val_x = val_data['x'] 
+        val_y = val_data['y'] 
+        val_mask = val_data['mask'] 
+        val_num_groups = val_data['num_groups'] 
+        val_batches = len(val_x) // batch_size
+
         num_batches = len(train_x ) // batch_size
-        print("{} batches, {} per batch on {}".format(num_batches, batch_size, self.device))
+        print("TRAIN: {} batches, {} per batch on {}".format(num_batches, batch_size, self.device))
+
+        val_num_batches = len(val_x ) // batch_size
+        print("VALIDATION: {} batches, {} per batch on {}".format(val_num_batches, batch_size, self.device))
         
         print('>>> Start training on {}'.format(self.device))
         for epoch in range(st_epoch, trainConfig['num_epochs']):
@@ -232,9 +243,11 @@ class TransformerXL(object):
                 saver_agent.global_step_increment()
 
             train_loss = []
+            val_loss = []
             st_time = time.time()
-            model.train()
 
+            #train
+            model.train()
             for bidx in range(num_batches):
                 
                 model.zero_grad()
@@ -266,7 +279,7 @@ class TransformerXL(object):
                     loss.backward()
 
                     if self.rank == 0:
-                        sys.stdout.write('epoch:{:3d}/{:3d}, batch: {:4d}/{:4d}, group: {:2d}/{:2d} | Loss: {:6f}\r'.format(
+                        sys.stdout.write('epoch:{:3d}/{:3d}, batch: {:4d}/{:4d}, group: {:2d}/{:2d} | Train Loss: {:6f}\r'.format(
                             epoch,
                             trainConfig['num_epochs'],
                             bidx,
@@ -279,21 +292,72 @@ class TransformerXL(object):
 
                 optimizer.step()
 
+            #validation
+            model.eval()
+            with torch.no_grad():
+                for bidx in range(val_batches):
+                    
+                    #model.zero_grad()
+
+                    # index
+                    bidx_st = batch_size * bidx
+                    bidx_ed = batch_size * (bidx + 1)
+
+                    # get batch
+                    batch_x = val_x[bidx_st:bidx_ed]
+                    batch_y = val_y[bidx_st:bidx_ed]
+                    batch_mask = val_mask[bidx_st:bidx_ed]
+                    n_group  = np.max(val_num_groups[bidx_st:bidx_ed])
+
+                    # proc groups
+                    mems = tuple()
+                    for gidx in range(n_group):
+                        group_x = batch_x[:, gidx, :]
+                        group_y = batch_y[:, gidx, :]
+                        group_mask = batch_mask[:, gidx, :]
+                        
+                        group_x = torch.from_numpy(group_x).permute(1, 0).contiguous().to(self.device).long()  # (seq_len, bsz)
+                        group_y = torch.from_numpy(group_y).permute(1, 0).contiguous().to(self.device).long()
+                        group_mask = torch.from_numpy(group_mask).to(self.device).float()
+                        
+                        ret = model(group_x, group_y, group_mask, *mems)
+                        loss, mems = ret[0], ret[1:]              
+                        val_loss.append(loss.item()) 
+                        #loss.backward()
+
+                        if self.rank == 0:
+                            sys.stdout.write('epoch:{:3d}/{:3d}, batch: {:4d}/{:4d}, group: {:2d}/{:2d} | Val Loss: {:6f}\r'.format(
+                                epoch,
+                                trainConfig['num_epochs'],
+                                bidx,
+                                val_num_batches,
+                                gidx,
+                                n_group, 
+                                loss.item()
+                            ))
+                            sys.stdout.flush()
+
+                    #optimizer.step()
+
             if self.rank == 0:
                 curr_train_loss = sum(train_loss) / len(train_loss)
-                saver_agent.add_summary('epoch loss', curr_train_loss)
+                curr_val_loss = sum(val_loss) / len(val_loss)
+                saver_agent.add_summary('epoch loss train', curr_train_loss)
+                saver_agent.add_summary('epoch loss val', curr_val_loss)
 
                 epoch_train_loss.append(curr_train_loss)
-                epoch_info = 'Epoch: {}, Train Loss: {:.5f} ,  T: {:.3f}'.format(epoch+1, curr_train_loss, time.time()-st_time)
+                epoch_val_loss.append(curr_val_loss)
+                epoch_info = 'Epoch: {}, Train Loss: {:.5f} ,  Val Loss: {:.5f} , T: {:.3f}'.format(epoch+1, curr_train_loss, curr_val_loss, time.time()-st_time)
                 print(epoch_info)
 
-                self.train_loss_record(epoch, curr_train_loss, checkpoint_dir)
+                self.train_loss_record(epoch, curr_train_loss, checkpoint_dir, val_loss=curr_val_loss)
                 self.save_checkpoint({
                         'epoch': epoch + 1,
                         'model_setting': self.modelConfig,
                         'train_setting': trainConfig,
                         'state_dict': model.state_dict(),
-                        'best_loss': curr_train_loss,
+                        'best_loss': curr_val_loss,
+                        'best_train_loss': curr_train_loss,
                         'optimizer' : optimizer.state_dict(),
                                     }, 
                         checkpoint_dir, 
@@ -484,8 +548,18 @@ class TransformerXL(object):
         # text string to save into file
         final = str()
     
-        ticks_since_measure = 0
+        wait_time = int(primer[-1].split(":")[1])
+        ticks_since_measure = wait_time
+        print(wait_time)
         beg_list = primer
+
+        instruments = []
+        for token in primer:
+            if "note" in token or "rest" in token:
+                inst = token.split(":")[0]
+                if inst not in instruments:
+                    instruments.append(inst)
+        print(instruments)
 
         # FOR THE SPLITTED APPROACH
         others_splitted=[]
@@ -524,7 +598,8 @@ class TransformerXL(object):
         ticks_per_measure = 960 * 4
         bars_to_generate = params['num_bars']
         measures_since_repeat = 1
-        while generate_n_bar < bars_to_generate:
+        while generate_n_bar < bars_to_generate and len(words[0]) < 1024:
+            #print(len(words[0]))
             # prepare input
             if initial_flag:
                 temp_x = np.zeros((len(words[0]), batch_size))
@@ -569,6 +644,10 @@ class TransformerXL(object):
                 probs = self.temperature(logits=logits, temperature=10) #10
                 word = self.nucleus(probs=probs, p=0.99) #0.99
 
+            if 'tempo' in self.word2event[word]:
+                probs = self.temperature(logits=logits, temperature=10) #10
+                word = self.nucleus(probs=probs, p=0.99) #0.99
+
             # CONDITION TO TACKLE THE "end"
             if self.word2event[word] == 'end':
                 probs = self.temperature(logits=logits, temperature=10) #5
@@ -576,15 +655,21 @@ class TransformerXL(object):
 
             #enforce time signature
             new_measure = False
+            skip_token = False
             if 'wait' in self.word2event[word]:
                 split_word = self.word2event[word].split(":")
                 wait_amnt = int(split_word[1])
                 if ticks_since_measure + wait_amnt > ticks_per_measure:
                     print(ticks_per_measure, ticks_since_measure)
                     new_wait_amnt = ticks_per_measure - ticks_since_measure
-                    word = self.event2word["wait:" + str(new_wait_amnt)]
-                    new_measure = True
-                    ticks_since_measure = 0
+                    if "wait:" + str(new_wait_amnt) in self.event2word:
+                        print("new wait valid")
+                        word = self.event2word["wait:" + str(new_wait_amnt)]
+                        new_measure = True
+                        ticks_since_measure = 0
+                    else:
+                        print('new wait invalid, skipping')
+                        skip_token = True
                 elif ticks_since_measure + wait_amnt == ticks_per_measure:
                     new_measure = True
                     ticks_since_measure = 0
@@ -594,7 +679,13 @@ class TransformerXL(object):
                 skip_token = True
             elif "tempo" in self.word2event[word]:
                 skip_token = True
+            elif "note" in self.word2event[word] or "rest" in self.word2event[word]:
+                inst = self.word2event[word].split(":")[0]
+                if inst not in instruments:
+                    skip_token = True
             
+            if skip_token:
+                print("SKIPPING", self.word2event[word])
             if not skip_token:
                 words[0].append(word)
                 final += self.word2event[word] + '\n'

@@ -74,7 +74,7 @@ def main():
         song_time, word_len = model.inference(
             model_path = model_path,
             strategies=['temperature', 'nucleus'],
-            params={'t': 1.2 ,'p': 0.9, 'bpm': bpm, 'num_bars':num_bars, 'key':key, 'initial_wait':initial_wait},
+            params={'t': 1.5 ,'p': 0.9, 'bpm': bpm, 'num_bars':num_bars, 'key':key, 'initial_wait':initial_wait},
             id = idx, 
             output_path=experiment_dir)
             

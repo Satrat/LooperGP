@@ -1,10 +1,12 @@
-from lib2to3.pgen2 import token
+'''
+make_loops.py
+
+Sara Adkins 2022
+'''
+
 import guitarpro
-import sys
 import dadagp as dada
 import numpy as np
-import os
-import copy
 
 def convert_from_dadagp(tokens):
     song = dada.tokens2guitarpro(tokens, verbose=False)
@@ -13,6 +15,7 @@ def convert_from_dadagp(tokens):
     song.title = "untitled"
     return song
 
+#for comparing equality of notes
 class MelodyNote:
     def __init__(self, duration, start, bar_start, note_list):
         self.duration = duration.value
@@ -21,7 +24,7 @@ class MelodyNote:
         if self.is_dotted:
             self.tick_duration = self.tick_duration * 1.5
         
-        self.start_time = start  #- 960 #GP has a qtr note offset for some reason
+        self.start_time = start 
         self.on_bar = False
         if self.start_time == bar_start:
             self.on_bar = True
@@ -76,6 +79,7 @@ def test_loop_exists(pattern_list, pattern):
             return i #replace existing pattern with this new longer one
     return None #we're just appending the new pattern
 
+# Convert a GuitarPro song to a list of MelodyNotes to make comparisons quicker
 def create_track_list(song):
     melody_track_lists = []
     time_signatures = {}
@@ -83,7 +87,7 @@ def create_track_list(song):
         melody_list = []
         for measure in track.measures:
             for beat in measure.voices[0].beats:
-                note = MelodyNote(beat.duration, beat.start - 960, measure.start - 960, beat.notes)
+                note = MelodyNote(beat.duration, beat.start - 960, measure.start - 960, beat.notes) #compensate for GP 960 tick offset
                 melody_list.append(note)
             if i == 0:
                 signature = (measure.timeSignature.numerator, measure.timeSignature.denominator.value)
@@ -95,6 +99,7 @@ def create_track_list(song):
         
     return melody_track_lists, time_signatures
 
+# Figure out the dominant key signature in the song
 def get_dom_beats_per_bar(time_signatures):
     max_repeats = 0
     dom_sig = None
@@ -107,6 +112,10 @@ def get_dom_beats_per_bar(time_signatures):
     ratio = 4.0 / dem
     return num * ratio
 
+# Implementation of Correlative Matrix approach presented in:
+# Jia Lien Hsu, Chih Chin Liu, and Arbee L.P. Chen. Discovering
+# nontrivial repeating patterns in music data. IEEE Transactions on
+# Multimedia, 3:311–325, 9 2001.
 def calc_correlation(track_list, instrument):
     melody_seq = track_list[instrument]
     corr_size = len(melody_seq)
@@ -131,9 +140,9 @@ def calc_correlation(track_list, instrument):
     
     return corr_mat, corr_dur, melody_seq
 
+# filter based on defined parameters and remove duplicates
 def get_valid_loops(melody_seq, corr_mat, corr_dur, min_len=4, min_beats=16.0, max_beats=32.0, min_rep_beats=4.0):
     x_num_elem, y_num_elem = np.where(corr_mat == min_len)
-    #print(len(x_num_elem))
 
     valid_indices = []
     for i,x in enumerate(x_num_elem):
@@ -144,11 +153,8 @@ def get_valid_loops(melody_seq, corr_mat, corr_dur, min_len=4, min_beats=16.0, m
         loop_start_time = melody_seq[start_x].start_time
         loop_end_time = melody_seq[start_y].start_time
         loop_beats = (loop_end_time - loop_start_time) / 960.0
-        #print(loop_beats)
         if loop_beats <= max_beats and loop_beats >= min_beats:
-            #print("KEEP")
             valid_indices.append((x_num_elem[i], y_num_elem[i]))
-    #print(len(valid_indices))
     
     loops = []
     loop_bp = []
@@ -172,10 +178,10 @@ def get_valid_loops(melody_seq, corr_mat, corr_dur, min_len=4, min_beats=16.0, m
             elif exist_result > 0: #index to replace
                 loops[exist_result] = loop
                 loop_bp[exist_result] = (melody_seq[beginning].start_time, melody_seq[end].start_time)
-    #print(len(loops))
     
     return loops, loop_bp
 
+# filter out loops below a specified density
 def filter_loops_density(token_list, loop_bp, density=3):
     if len(loop_bp) == 0:
         return []
@@ -196,7 +202,6 @@ def filter_loops_density(token_list, loop_bp, density=3):
             if timestamp >= pts[0] and timestamp < pts[1]:
                 if t == "new_measure":
                     num_meas += 1
-                    #print(num_meas, timestamp)
             if "wait:" in t:
                 timestamp += int(t[5:])
             if timestamp >= pts[1]:
@@ -212,7 +217,7 @@ def filter_loops_density(token_list, loop_bp, density=3):
 
     return final_endpoints
 
-
+#combine all loops into a single DadaGP file, each loop surrounded by repeat tokens
 def unify_loops(token_list, loop_bp,density=3):
     if len(loop_bp) == 0:
         return token_list[0:4]
@@ -247,7 +252,6 @@ def unify_loops(token_list, loop_bp,density=3):
 
         timestamp = 0
         measure_idx = 0
-        #(pts, num_meas)
         for i in range(4, len(token_list)):
             t = token_list[i]
             if timestamp >= pts[0] and timestamp < pts[1] and "repeat" not in t:
@@ -264,12 +268,9 @@ def unify_loops(token_list, loop_bp,density=3):
                 break
 
     final_list.append("measure:repeat_close:1")
-    #final_list.append("end")
     return final_list
 
-
-
-
+# create a new Guitar Pro song with the specified endpoints
 def convert_gp_loops(song, endpoints):
     used_tracks = []
     start = endpoints[0]
@@ -301,7 +302,7 @@ def convert_gp_loops(song, endpoints):
                     measures.append(measure)
 
         if len(measures) > 0 and non_rests > 0:
-            song.tracks[inst].measures = measures # + measures + measures + measures + measures + measures + measures + measures
+            song.tracks[inst].measures = measures
             used_tracks.append(song.tracks[inst])
         if inst == 0 and non_rests == 0: #if the loop is just rests, ignore it
             return None
@@ -315,6 +316,8 @@ def convert_gp_loops(song, endpoints):
         song.tracks.append(track)
     return song
 
+# extracted only the hard-coded repeats from a DadaGP token list
+# includes filtering by loop length and density
 def get_repeats(list_words,min_meas=4,max_meas=16,density=8):
     num_words = len(list_words)
     endpoint_dict = {}
@@ -375,6 +378,7 @@ def get_repeats(list_words,min_meas=4,max_meas=16,density=8):
     
     return final_list
 
+# calculate the number of hard repeats in a song without saving the loops themselves
 def get_num_repeats(list_words,min_meas=4,max_meas=16,density=8):
     num_words = len(list_words)
     endpoint_dict = {}

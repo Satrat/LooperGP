@@ -1,3 +1,11 @@
+'''
+inference.py
+
+Pedro Sarmento, Adarsh Kumar, C J Carr, Zack Zukowski, Mathieu
+Barthet, and Yi-Hsuan Yang. Dadagp: A dataset of tokenized guitarpro
+songs for sequence models, 2021.
+'''
+
 from model_ead import TransformerXL
 import pickle
 import os

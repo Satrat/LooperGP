@@ -1,3 +1,9 @@
+'''
+primers.py
+
+Sara Adkins 2022
+'''
+
 HEADER1 = ['artist:unknown_artist', 'downtune:0']
 HEADER2 = ['start', 'new_measure', 'measure:repeat_open']
 
@@ -11,6 +17,7 @@ def build_pitched_note(instrument, string, fret):
 def build_percussion_note(instrument, midi_num):
         return "{}:note:{}".format(instrument, midi_num)
 
+# create primer tokens based on yaml configurations
 def build_primer(bpm, key=None, duration=0):
         primer = []
         for val in HEADER1:
@@ -118,9 +125,3 @@ def build_primer(bpm, key=None, duration=0):
                 primer.append("wait:{}".format(duration))
         
         return primer
-                
-
-#def get_primer_prompt(primer_id, bpm):
-#        primer, offset = primer_dict[primer_id]
-#        primer[2] = 'tempo:' + str(bpm)
-#        return primer, offset

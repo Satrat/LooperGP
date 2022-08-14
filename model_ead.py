@@ -1,21 +1,28 @@
-from distutils.command.build import build
-#from ssl import VERIFY_ALLOW_PROXY_CERTS
+'''
+model_ead.py
+
+MODIFIED FROM:
+Pedro Sarmento, Adarsh Kumar, C J Carr, Zack Zukowski, Mathieu
+Barthet, and Yi-Hsuan Yang. Dadagp: A dataset of tokenized guitarpro
+songs for sequence models, 2021.
+
+Sara Adkins 2022 Modifications
+* Added validation loss to training function
+* Able device_rank modifier so model can run in parallel on multiple GPUs 
+* Updated inference function to control duration, primer and time signature from yaml file
+* Added inference_single_from_primer function
+'''
+
 import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import pandas as pd
-import miditoolkit
 import os
 import time
-from sklearn.model_selection import train_test_split
 from modules import MemTransformerLM
-from glob import glob
-from transformers import AdamW, WarmUp, get_polynomial_decay_schedule_with_warmup
 
-import miditoolkit
-from miditoolkit.midi.containers import Marker, Instrument, TempoChange, Note
 import numpy as np
 
 import saver
@@ -27,55 +34,6 @@ BEAT_RESOL = 480
 BAR_RESOL = BEAT_RESOL * 4
 TICK_RESOL = BEAT_RESOL // 4
 INSTR_NAME_MAP = {'piano': 0, 'melody': 1}
-
-
-def write_midi(words, path_midi, word2event):
-    notes_all = []
-
-    events = [word2event[words[i]] for i in range(len(words))]
-
-    bar_cnt = 0
-    cur_beat = 0
-
-    midi_obj = miditoolkit.midi.parser.MidiFile()
-    cur_pos = 0
-    
-    for i in range(len(events)-3):
-        cur_event = events[i]
-        name = cur_event.split('_')[0]
-        attr = cur_event.split('_')
-        if name == 'Bar':
-            bar_cnt += 1
-        elif name == 'Beat':
-            cur_beat = int(attr[1])
-            cur_pos = bar_cnt * BAR_RESOL + cur_beat * TICK_RESOL
-        elif name == 'Chord':
-            chord_text = attr[1] + '_' + attr[2]
-            midi_obj.markers.append(Marker(text=chord_text, time=cur_pos))
-        elif name == 'Tempo':
-            midi_obj.tempo_changes.append(
-                TempoChange(tempo=int(attr[1]), time=cur_pos))
-        else:
-            if 'Note_Pitch' in events[i] and \
-            'Note_Velocity' in events[i+1] and \
-            'Note_Duration' in events[i+2]:
-
-                pitch = int(events[i].split('_')[-1])
-                duration = int(events[i+2].split('_')[-1])
-
-                if int(duration) == 0:
-                    duration = 60
-
-                end = cur_pos + duration 
-                velocity = int(events[i+1].split('_')[-1])
-                notes_all.append(
-                    Note(pitch=pitch, start=cur_pos, end=end, velocity=velocity))
-                
-    piano_track = Instrument(0, is_drum=False, name='piano')
-    piano_track.notes = notes_all
-    midi_obj.instruments = [piano_track]
-    midi_obj.dump(path_midi)
-
 
 def network_paras(model):
     # compute only trainable params
@@ -296,9 +254,6 @@ class TransformerXL(object):
             model.eval()
             with torch.no_grad():
                 for bidx in range(val_batches):
-                    
-                    #model.zero_grad()
-
                     # index
                     bidx_st = batch_size * bidx
                     bidx_ed = batch_size * (bidx + 1)
@@ -323,7 +278,6 @@ class TransformerXL(object):
                         ret = model(group_x, group_y, group_mask, *mems)
                         loss, mems = ret[0], ret[1:]              
                         val_loss.append(loss.item()) 
-                        #loss.backward()
 
                         if self.rank == 0:
                             sys.stdout.write('epoch:{:3d}/{:3d}, batch: {:4d}/{:4d}, group: {:2d}/{:2d} | Val Loss: {:6f}\r'.format(
@@ -336,8 +290,6 @@ class TransformerXL(object):
                                 loss.item()
                             ))
                             sys.stdout.flush()
-
-                    #optimizer.step()
 
             if self.rank == 0:
                 curr_train_loss = sum(train_loss) / len(train_loss)
@@ -367,6 +319,7 @@ class TransformerXL(object):
                     print('Experiment [{}] finished at loss < 0.01.'.format(checkpoint_dir))
                     break
 
+    #For running inference from inference.py, saves output directly to file
     def inference(self, model_path, strategies, params, id, output_path):
 
         if not os.path.exists(output_path):
@@ -409,7 +362,7 @@ class TransformerXL(object):
         for ele in beg_list:
             beg_event2word.append(self.event2word[ele])
 
-        words[-1] += beg_event2word #[[2982, 476, 974, 440, 4, 19, 36, 2, 5, 0]]
+        words[-1] += beg_event2word 
         final = "\n".join(beg_list) 
         final+='\n'
 
@@ -419,9 +372,8 @@ class TransformerXL(object):
 
         # generate
         initial_flag = True
-        generate_n_bar = 0 #since were priming with 0
+        generate_n_bar = 0 #since were priming with 0 bars
         batch_size = 1
-        n_tokens = len(words[0])
         ticks_per_measure = 960 * 4
         bars_to_generate = params['num_bars']
         measures_since_repeat = 1
@@ -453,7 +405,6 @@ class TransformerXL(object):
                 probs = self.temperature(logits=logits, temperature=1.)
 
             word = self.nucleus(probs=probs, p=params['p']) 
-            #print(word, self.word2event[word])
 
             #CONDITION TO TACKLE THE "measure:repeat"
             flag=0
@@ -470,39 +421,39 @@ class TransformerXL(object):
                 probs = self.temperature(logits=logits, temperature=10) #10
                 word = self.nucleus(probs=probs, p=0.99) #0.99
 
+            # we wish to avoid tempo changes in the middle of loops
+            if 'tempo' in self.word2event[word]:
+                probs = self.temperature(logits=logits, temperature=10) #10
+                word = self.nucleus(probs=probs, p=0.99) #0.99
+
             # CONDITION TO TACKLE THE "end"
             if self.word2event[word] == 'end':
                 probs = self.temperature(logits=logits, temperature=10) #5
                 word = self.nucleus(probs=probs, p=0.99) #0.99
 
-            # take repeats into account when counting measures
-            skip_token = False
-            if "measure" in self.word2event[word] and "repeat" in self.word2event[word]:
-                split_word = self.word2event[word].split(":")
-                if "open" in self.word2event[word]:
-                    measures_since_repeat = 1
-                if "close" in self.word2event[word]:
-                    num_repeats = int(split_word[2])
-                    total_measures = num_repeats * measures_since_repeat
-                    if generate_n_bar + total_measures > bars_to_generate:
-                        skip_token = True
-                    elif measures_since_repeat == 0:
-                        skip_token = True
-                    else:
-                        generate_n_bar += total_measures
-                    measures_since_repeat = 0
+            # skip new_measure tokens since we are enforcing boundaries manually
+            if self.word2event[word] == 'new_measure':
+                print("SKIPPING ", self.word2event[word])
+                probs = self.temperature(logits=logits, temperature=10) #5
+                word = self.nucleus(probs=probs, p=0.99) #0.99
 
             #enforce time signature
             new_measure = False
+            skip_token = False
             if 'wait' in self.word2event[word]:
                 split_word = self.word2event[word].split(":")
                 wait_amnt = int(split_word[1])
                 if ticks_since_measure + wait_amnt > ticks_per_measure:
                     print(ticks_per_measure, ticks_since_measure)
                     new_wait_amnt = ticks_per_measure - ticks_since_measure
-                    word = self.event2word["wait:" + str(new_wait_amnt)]
-                    new_measure = True
-                    ticks_since_measure = 0
+                    if "wait:" + str(new_wait_amnt) in self.event2word:
+                        print("new wait valid")
+                        word = self.event2word["wait:" + str(new_wait_amnt)]
+                        new_measure = True
+                        ticks_since_measure = 0
+                    else:
+                        print('new wait invalid, skipping')
+                        skip_token = True
                 elif ticks_since_measure + wait_amnt == ticks_per_measure:
                     new_measure = True
                     ticks_since_measure = 0
@@ -512,7 +463,13 @@ class TransformerXL(object):
                 skip_token = True
             elif "tempo" in self.word2event[word]:
                 skip_token = True
+            elif "note" in self.word2event[word] or "rest" in self.word2event[word]:
+                inst = self.word2event[word].split(":")[0]
+                if inst not in instruments:
+                    skip_token = True
             
+            if skip_token:
+                print("SKIPPING", self.word2event[word])
             if not skip_token:
                 words[0].append(word)
                 final += self.word2event[word] + '\n'
@@ -523,7 +480,6 @@ class TransformerXL(object):
                 generate_n_bar += 1
                 measures_since_repeat += 1
 
-
         temperatura = params['t']
         parametro_n = params['p']
 
@@ -531,13 +487,12 @@ class TransformerXL(object):
 
         with open(generated_file_name, "w") as text_file:
             final += 'end\n'
-            text_file.write(final)
-        #write_midi(words[0], output_path, self.word2event)       
-        
+            text_file.write(final)     
 
         song_total_time = time.time() - song_init_time
         return song_total_time, len(words[0])
 
+    #for running inference from extract_ex.ipynb, returns token list
     def inference_single_from_primer(self, model_path, strategies, params, primer):
         _, model = self.get_model(model_path)
         model.eval()
@@ -582,7 +537,7 @@ class TransformerXL(object):
         for ele in beg_list:
             beg_event2word.append(self.event2word[ele])
 
-        words[-1] += beg_event2word #[[2982, 476, 974, 440, 4, 19, 36, 2, 5, 0]]
+        words[-1] += beg_event2word 
         final = "\n".join(beg_list) 
         final+='\n'
 
@@ -592,14 +547,12 @@ class TransformerXL(object):
 
         # generate
         initial_flag = True
-        generate_n_bar = 0 #since were priming with 0
+        generate_n_bar = 0 #since were priming with 0 full bars
         batch_size = 1
-        n_tokens = len(words[0])
         ticks_per_measure = 960 * 4
         bars_to_generate = params['num_bars']
         measures_since_repeat = 1
         while generate_n_bar < bars_to_generate and len(words[0]) < 1024:
-            #print(len(words[0]))
             # prepare input
             if initial_flag:
                 temp_x = np.zeros((len(words[0]), batch_size))
@@ -627,7 +580,6 @@ class TransformerXL(object):
                 probs = self.temperature(logits=logits, temperature=1.)
 
             word = self.nucleus(probs=probs, p=params['p']) 
-            #print(word, self.word2event[word])
 
             #CONDITION TO TACKLE THE "measure:repeat"
             flag=0
@@ -644,6 +596,7 @@ class TransformerXL(object):
                 probs = self.temperature(logits=logits, temperature=10) #10
                 word = self.nucleus(probs=probs, p=0.99) #0.99
 
+            # we wish to avoid tempo changes in the middle of loops
             if 'tempo' in self.word2event[word]:
                 probs = self.temperature(logits=logits, temperature=10) #10
                 word = self.nucleus(probs=probs, p=0.99) #0.99
@@ -653,6 +606,7 @@ class TransformerXL(object):
                 probs = self.temperature(logits=logits, temperature=10) #5
                 word = self.nucleus(probs=probs, p=0.99) #0.99
 
+            # skip new_measure tokens since we are enforcing boundaries manually
             if self.word2event[word] == 'new_measure':
                 print("SKIPPING ", self.word2event[word])
                 probs = self.temperature(logits=logits, temperature=10) #5

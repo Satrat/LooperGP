@@ -1,14 +1,14 @@
-
+#architecture configuration
 MODEL:
     n_head: 8
-    n_layer: 10         #12
-    dropout: 0.15         #SARA changed from 0.1
-    d_inner: 4096        #d_ff prev 2048
+    n_layer: 10 
+    dropout: 0.15       
+    d_inner: 4096
     d_embed: 512
-    d_model: 1024        # prev 768
+    d_model: 1024
     dropatt: 0.0         #attention probability dropout rate
-    query_dim: 16        #64
-    seq_len: 512         #512
+    query_dim: 16
+    seq_len: 512
     n_token: 3020
     mem_len: 512
     ext_len: 0
@@ -26,13 +26,13 @@ MODEL:
     pre_lnorm: True      #apply LayerNorm to the input instead of the output
     same_length: True    #use the same attn length for all tokens
 
-
+#training configuration
 TRAIN: 
     data_path: "D:\\Documents\\DATA\\DadaGP-4-8-lps-3-dens-per-inst-hard-reps\\splitted_train_data_XL.npz"
     val_path: "D:\\Documents\\DATA\\DadaGP-4-8-lps-3-dens-per-inst-hard-reps\\splitted_test_data_XL.npz"
     output_dir: "./outputs/"        # directory for saving model weights
     batch_size: 4
-    lr: 0.0001      #0.0002         
+    lr: 0.0001        
     num_epochs: 240
     save_freq: 2
     seed: 2222    
@@ -42,19 +42,18 @@ TRAIN:
     vocab_data_path: './data/vocab_song_artist.pkl'
     rev_vocab_data_path: './data/rev_vocab_song_artist.pkl'
 
-
-
+#generation configuration
 INFERENCE:
-    num_sample: 5 # the number of songs it will generate
-    bpm: 120
-    num_bars: 16
-    key: "a"
+    num_sample: 5 #number of songs to generate
+    bpm: 120 #tempo to generate
+    num_bars: 16 #bars to generate
+    key: "a" #key to generate
     initial_wait: 240 #240 is 16th note, 480 is 8th note etc...
     gpuID: '0'
-    experiment_dir: #'./outputs/5_lat102420220714-235039'      # folder containing model checkpoint
+    experiment_dir: './outputs/5_lat102420220714-235039'      # folder containing model checkpoint
     generated_dir: './inference_attempts'
     checkpoint_type: epoch_idx  # best_train, best_val, epoch_idx
-    model_epoch: 200                
+    model_epoch: 40               
     no_cuda: False
     vocab_data_path: './data/vocab_song_artist.pkl'
     rev_vocab_data_path: './data/rev_vocab_song_artist.pkl'

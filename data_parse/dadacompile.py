@@ -1,19 +1,26 @@
+'''
+dadacompile.py
+
+Pedro Sarmento, Adarsh Kumar, C J Carr, Zack Zukowski, Mathieu
+Barthet, and Yi-Hsuan Yang. Dadagp: A dataset of tokenized guitarpro
+songs for sequence models, 2021.
+'''
+
 import json
 import pickle 
 import numpy as np
 import os
 import random
 import tqdm
-import make_loops as loops
-import copy
 
 # PATHS
-root_path = "D:\Documents\DATA\DadaGP-v1.1" #"D:\Documents\DATA\DadaGP-Loops-many"
-save_path = "D:\\Downloads" #D:\Documents\DATA\DadaGP-4-8-lps-3-dens-per-inst-hard-reps" #"D:\Documents\DATA\DadaGP-Output-many"
+root_path = "D:\Documents\DATA\DadaGP-4-8-lps-3-dens-per-inst-hard-reps"
+save_path = "D:\Documents\DATA\DadaGP-4-8-lps-3-dens-per-inst-hard-reps"
 allfiles_path = os.path.join(root_path,"_DadaGP_all_filenames.json" ) 
+
 # GLOBAL VARIABLES FOR PROCESS
 WINDOW_SIZE = 512
-GROUP_SIZE = 40  #15
+GROUP_SIZE = 15
 MIN_LEN = 20
 MAX_LEN = WINDOW_SIZE * GROUP_SIZE
 COMPILE_TARGET = 'XL' # 'linear', 'XL'
@@ -21,7 +28,7 @@ VAL_SPLIT = 0.15
 print('[config] MAX_LEN:', MAX_LEN)
 
 
-# To turn dictionary into .npz files
+# Transforms dataset into into .npz files for training
 def process(filtered_files, fname=""):  
 
     fname = "splitted"
@@ -63,7 +70,6 @@ def process(filtered_files, fname=""):
             except:
                 print("ERROR: Skipping unrecognized token: {}".format(i))
         num_words = len(words)
-        #print(num_words)
 
         if num_words >= MAX_LEN - 2: # 2 for room
             print(' [!] too long:', num_words)
@@ -78,7 +84,6 @@ def process(filtered_files, fname=""):
         x = words[:-1]
         y = words[1:]     # Shifts!
         seq_len = len(x)
-        #print(' > seq_len:', seq_len)
 
         # pad with eos
         x = np.concatenate([x, np.ones(MAX_LEN-seq_len) * eos_id])
@@ -93,7 +98,7 @@ def process(filtered_files, fname=""):
         seq_len_list.append(seq_len)
         num_groups_list.append(int(np.ceil(seq_len/WINDOW_SIZE)))
         name_list.append(file)
-        #print(name_list)
+
         if fidx%1000==0:
             print("Collecting something", len(x_list))
 

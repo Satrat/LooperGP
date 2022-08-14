@@ -1,11 +1,8 @@
 # Code from https://github.com/YatingMusic/compound-word-transformer
 # Classes for the Transformer model
 
-import sys
 import math
-import functools
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

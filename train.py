@@ -1,13 +1,21 @@
+'''
+train.py
+
+MODIFIED FROM:
+Pedro Sarmento, Adarsh Kumar, C J Carr, Zack Zukowski, Mathieu
+Barthet, and Yi-Hsuan Yang. Dadagp: A dataset of tokenized guitarpro
+songs for sequence models, 2021.
+
+Sara Adkins 2022 Modifications
+* Configured so model can run in parallel on multiple GPUs 
+'''
 import os
 import json
 import yaml
 import pickle
 import datetime
 import numpy as np
-from collections import OrderedDict
 
-import torch
-#from model_randomsampling import TransformerXL
 from model_ead import TransformerXL
 
 import torch.distributed as dist

@@ -1,7 +1,26 @@
-# DadaGP Generation
-WIP to generate loopable phrases using TransformerXL and DadaGP dataset
+# ReRe:GP
+Sound and Music Computing Masters Project, generating loopable symbolic music using TransformerXL and DadaGP dataset
 
-## Layout
+## How to Use
+Install dependencies
+```
+python -m pip install -r requirements.txt
+```
+Modify paths and other configuration details for training and inference in `full-data-config_5_lat1024.yml`
+
+Run training
+```
+python train.py
+```
+
+Generate outputs (without extracting loops)
+```
+python inference.py
+```
+
+**Generate ouputs and extract loops:** run `data_parse/extract_ex.ipynb` notebook
+
+## Repo Layout
 
 #### full-data-config_5_lat1024.yml
 main config file with all the parameters for generation and training
@@ -13,13 +32,13 @@ script for model backbone, adapted from  https://github.com/YatingMusic/compound
 script for model backbone, adapted from https://github.com/YatingMusic/compound-word-transformer
 
 #### model weights/
-folder where model weights should go, also model config file
+folder where model weights and model config file should go
 
 #### data/
 folder for storing mappings between token strings and integer IDs, as well as dataset in npz format
 
-#### util/
-Scripts for converting between DadaGP and GuitarPro formats. Adapted from https://github.com/dada-bots/dadaGP
+#### [data_parse/](https://github.com/Satrat/dadaGP-generation/tree/main/data_parse)
+Scripts loop extraction, file format conversion, and generation examples
 
 #### inference.py
 Script for generation. Depends on the main config file, vocab pickle files, and npz dataset
@@ -29,4 +48,4 @@ Script for training. Depends on the main config file, vocab pickle files, and np
 
 ## Files that need to be downloaded externally
 * ```data/fulldataset-song-artist-train_data_XL.npz```
-* ```model_weights/ep_200.pth.tar```
+* ```model_weights/ep_40.pth.tar```

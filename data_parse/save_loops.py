@@ -1,6 +1,8 @@
 '''
 save_loops.py
 
+Script for building the ReRe:GP loop dataset from a DadaGP dataset folder
+
 Sara Adkins 2022
 '''
 

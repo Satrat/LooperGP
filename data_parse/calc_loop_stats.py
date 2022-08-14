@@ -1,6 +1,8 @@
 '''
 calc_loop_stats.py
 
+Script for analyzing the number of loops in a dataset without saving the output to file
+
 Sara Adkins 2022
 '''
 

@@ -1,6 +1,8 @@
 '''
 make_loops.py
 
+Implementation of the loop extraction algorithm
+
 Sara Adkins 2022
 '''
 

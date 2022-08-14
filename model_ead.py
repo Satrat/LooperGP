@@ -653,6 +653,11 @@ class TransformerXL(object):
                 probs = self.temperature(logits=logits, temperature=10) #5
                 word = self.nucleus(probs=probs, p=0.99) #0.99
 
+            if self.word2event[word] == 'new_measure':
+                print("SKIPPING ", self.word2event[word])
+                probs = self.temperature(logits=logits, temperature=10) #5
+                word = self.nucleus(probs=probs, p=0.99) #0.99
+
             #enforce time signature
             new_measure = False
             skip_token = False

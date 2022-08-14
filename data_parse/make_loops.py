@@ -144,7 +144,9 @@ def get_valid_loops(melody_seq, corr_mat, corr_dur, min_len=4, min_beats=16.0, m
         loop_start_time = melody_seq[start_x].start_time
         loop_end_time = melody_seq[start_y].start_time
         loop_beats = (loop_end_time - loop_start_time) / 960.0
+        #print(loop_beats)
         if loop_beats <= max_beats and loop_beats >= min_beats:
+            #print("KEEP")
             valid_indices.append((x_num_elem[i], y_num_elem[i]))
     #print(len(valid_indices))
     
@@ -211,12 +213,11 @@ def filter_loops_density(token_list, loop_bp, density=3):
     return final_endpoints
 
 
-def unify_loops(token_list, loop_bp, density=8):
+def unify_loops(token_list, loop_bp,density=3):
     if len(loop_bp) == 0:
-        return None
+        return token_list[0:4]
 
-    #final_list = token_list[0:4] #header tokens
-    final_list = []
+    final_list = token_list[0:4] #header tokens
     for pts in loop_bp:
         #print(pts)
         num_meas = 0
@@ -233,9 +234,6 @@ def unify_loops(token_list, loop_bp, density=8):
             if timestamp >= pts[0] and timestamp < pts[1]:
                 if t == "new_measure":
                     num_meas += 1
-                    #print(num_meas, timestamp)
-            if "wait:" in t:
-                timestamp += int(t[5:])
             if timestamp >= pts[1]:
                 break
 
@@ -245,31 +243,30 @@ def unify_loops(token_list, loop_bp, density=8):
         curr_density = total_notes * 1.0 / len(num_notes)
 
         if curr_density < density * num_meas:
-            #("SKIP")
             continue
 
         timestamp = 0
         measure_idx = 0
-        curr_list = []
         #(pts, num_meas)
         for i in range(4, len(token_list)):
             t = token_list[i]
             if timestamp >= pts[0] and timestamp < pts[1] and "repeat" not in t:
-                curr_list.append(t)
+                final_list.append(t)
                 if t == "new_measure":
-                    #if measure_idx == 0:
-                    #    curr_list.append("measure:repeat_open")
-                    #if measure_idx == num_meas - 1:
-                    #    curr_list.append("measure:repeat_close:1")
+                    if measure_idx == 0:
+                        final_list.append("measure:repeat_open")
+                    if measure_idx == num_meas - 1:
+                        final_list.append("measure:repeat_close:1")
                     measure_idx += 1
             if "wait:" in t:
                 timestamp += int(t[5:])
             if timestamp >= pts[1]:
                 break
-        final_list.append((curr_list + curr_list + curr_list + curr_list).copy())
 
+    final_list.append("measure:repeat_close:1")
     #final_list.append("end")
     return final_list
+
 
 
 
@@ -374,7 +371,7 @@ def get_repeats(list_words,min_meas=4,max_meas=16,density=8):
                     break
                 end += 1
             if end > start:
-                final_list.append((list_words[start:end] + list_words[start:end] + list_words[start:end] + list_words[start:end]).copy())
+                final_list += list_words[start:end]
     
     return final_list
 

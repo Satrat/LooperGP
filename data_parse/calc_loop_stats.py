@@ -15,7 +15,7 @@ allfiles_path = os.path.join(root_path,"_DadaGP_all_filenames.json" )
 
 # for loops
 MIN_BARS = 4.0
-MAX_BARS = 8.0
+MAX_BARS = 16.0
 DENSITY = 4.0
 MIN_LEN = 4
 MIN_REP_BEATS = 4.0

@@ -8,13 +8,13 @@ import make_loops as loops
 import copy
 
 # PATHS
-root_path = "D:\Documents\DATA\DadaGP-4-8-lps-3-dens-per-inst-hard-reps" #"D:\Documents\DATA\DadaGP-Loops-many"
-save_path = "D:\Documents\DATA\DadaGP-4-8-lps-3-dens-per-inst-hard-reps" #"D:\Documents\DATA\DadaGP-Output-many"
-allfiles_path = os.path.join(root_path,"file_list_loops.json" ) 
+root_path = "D:\Documents\DATA\DadaGP-v1.1" #"D:\Documents\DATA\DadaGP-Loops-many"
+save_path = "D:\\Downloads" #D:\Documents\DATA\DadaGP-4-8-lps-3-dens-per-inst-hard-reps" #"D:\Documents\DATA\DadaGP-Output-many"
+allfiles_path = os.path.join(root_path,"_DadaGP_all_filenames.json" ) 
 # GLOBAL VARIABLES FOR PROCESS
 WINDOW_SIZE = 512
-GROUP_SIZE = 12  #15
-MIN_LEN = 60
+GROUP_SIZE = 40  #15
+MIN_LEN = 20
 MAX_LEN = WINDOW_SIZE * GROUP_SIZE
 COMPILE_TARGET = 'XL' # 'linear', 'XL'
 VAL_SPLIT = 0.15
@@ -42,7 +42,8 @@ def process(filtered_files, fname=""):
     n_files = len(filtered_files)
 
     # process
-    num_skipped = 0
+    num_skipped_long = 0
+    num_skipped_short = 0
     for fidx in tqdm.tqdm(range(n_files)):
         
         file = os.path.join(root_path, filtered_files[fidx])
@@ -66,10 +67,11 @@ def process(filtered_files, fname=""):
 
         if num_words >= MAX_LEN - 2: # 2 for room
             print(' [!] too long:', num_words)
-            num_skipped += 1
+            num_skipped_long += 1
             continue
         if num_words <=MIN_LEN:
             print(' [!] too short:', num_words)
+            num_skipped_short += 1
             continue
 
         # arrange IO
@@ -101,7 +103,8 @@ def process(filtered_files, fname=""):
                             *sorted(zipped, key=lambda x: -x[0])) 
 
     print('\n\n[Finished]')
-    print("SKIPPED ", num_skipped, " out of ", n_files)
+    print("SKIPPED ", num_skipped_long, " long out of ", n_files)
+    print("SKIPPED ", num_skipped_short, " short out of ", n_files)
     print(' compile target:', COMPILE_TARGET)
 
     if COMPILE_TARGET == 'XL':

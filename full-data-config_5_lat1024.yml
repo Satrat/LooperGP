@@ -33,12 +33,12 @@ TRAIN:
     output_dir: "./outputs/"        # directory for saving model weights
     batch_size: 4
     lr: 0.0001      #0.0002         
-    num_epochs: 100
+    num_epochs: 240
     save_freq: 2
     seed: 2222    
     no_cuda: False
-    resume_training_model: None
-    #resume_training_model: './outputs/5_lat102420220714-235039/ep_40.pth.tar'
+    #resume_training_model: None
+    resume_training_model: './outputs/5_lat102420220805-121538/ep_204.pth.tar'
     vocab_data_path: './data/vocab_song_artist.pkl'
     rev_vocab_data_path: './data/rev_vocab_song_artist.pkl'
 
@@ -51,10 +51,10 @@ INFERENCE:
     key: "a"
     initial_wait: 240 #240 is 16th note, 480 is 8th note etc...
     gpuID: '0'
-    experiment_dir: './outputs/5_lat102420220714-235039'      # folder containing model checkpoint
+    experiment_dir: #'./outputs/5_lat102420220714-235039'      # folder containing model checkpoint
     generated_dir: './inference_attempts'
     checkpoint_type: epoch_idx  # best_train, best_val, epoch_idx
-    model_epoch: 50                
+    model_epoch: 200                
     no_cuda: False
     vocab_data_path: './data/vocab_song_artist.pkl'
     rev_vocab_data_path: './data/rev_vocab_song_artist.pkl'

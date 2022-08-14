@@ -37,7 +37,7 @@ folder where model weights and model config file should go
 #### data/
 folder for storing mappings between token strings and integer IDs, as well as dataset in npz format
 
-#### [data_parse/](https://github.com/Satrat/dadaGP-generation/tree/main/data_parse)
+#### [data_parse/](https://github.com/Satrat/ReRe-GP/tree/main/data_parse)
 Scripts loop extraction, file format conversion, and generation examples
 
 #### inference.py

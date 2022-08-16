@@ -463,10 +463,6 @@ class TransformerXL(object):
                 skip_token = True
             elif "tempo" in self.word2event[word]:
                 skip_token = True
-            elif "note" in self.word2event[word] or "rest" in self.word2event[word]:
-                inst = self.word2event[word].split(":")[0]
-                if inst not in instruments:
-                    skip_token = True
             
             if skip_token:
                 print("SKIPPING", self.word2event[word])

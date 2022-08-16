@@ -16,6 +16,8 @@ python train.py
 Generate outputs (without extracting loops)
 ```
 python inference.py
+cd data_parse
+python convert_folder ./inference_attempts/yyyymmdd-hhmmss OUTPUT FOLDER
 ```
 
 **Generate ouputs and extract loops:** run `data_parse/extract_ex.ipynb` notebook

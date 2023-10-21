@@ -1,5 +1,7 @@
-# ReRe:GP
-Sound and Music Computing Masters Project, generating loopable symbolic music using TransformerXL and DadaGP dataset
+# LooperGP
+Generating loopable symbolic music using TransformerXL and the DadaGP dataset. Sound and Music Computing Masters Thesis at Queen Mary University of London, published at EvoMUSART 2023
+
+**ArXiv Link:** https://arxiv.org/abs/2303.01665 
 
 ## How to Use
 Install dependencies
@@ -49,5 +51,5 @@ Script for generation. Depends on the main config file, vocab pickle files, and 
 Script for training. Depends on the main config file, vocab pickle files, and npz dataset
 
 ## Files that need to be downloaded externally
-* ```data/fulldataset-song-artist-train_data_XL.npz```
-* ```model_weights/ep_40.pth.tar```
+* ```data/fulldataset-song-artist-train_data_XL.npz``` (for training)
+* ```model_weights/ep_40.pth.tar``` (for inference)

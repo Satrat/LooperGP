@@ -50,7 +50,7 @@ INFERENCE:
     key: "a" #key to generate
     initial_wait: 240 #240 is 16th note, 480 is 8th note etc...
     gpuID: '0'
-    experiment_dir: './outputs/5_lat102420220714-235039'      # folder containing model checkpoint
+    experiment_dir: './model-weights'      # folder containing model checkpoint
     generated_dir: './inference_attempts'
     checkpoint_type: epoch_idx  # best_train, best_val, epoch_idx
     model_epoch: 40               

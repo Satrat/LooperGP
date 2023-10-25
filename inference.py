@@ -160,8 +160,6 @@ def extract_loops_from_song(song, generated_tokens, idx, output_dir):
         dadagp_path = os.path.join(output_dir, "ex_" + str(idx) + "_loops" + ".gp5")
         guitarpro.write(song, dadagp_path)
 
-        total_segments += num_segments
-
 
 def run_inference(output_loc):
     model_config = yaml.full_load(open("model_config.yaml", 'r')) 

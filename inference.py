@@ -4,12 +4,12 @@ import os
 import torch
 import yaml
 import json
-import data_parse.make_loops as loops
+import make_loops as loops
 import guitarpro
 
 import numpy as np
 import datetime
-from data_parse.dadagp import dadagp_decode, tokens2guitarpro
+from dadagp import dadagp_decode, tokens2guitarpro
 
 def load_model(model_config, inference_config, device):
     # load dictionary

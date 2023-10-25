@@ -1,11 +1,3 @@
-'''
-inference.py
-
-Pedro Sarmento, Adarsh Kumar, C J Carr, Zack Zukowski, Mathieu
-Barthet, and Yi-Hsuan Yang. Dadagp: A dataset of tokenized guitarpro
-songs for sequence models, 2021.
-'''
-
 from model_ead import TransformerXL
 import pickle
 import os
@@ -16,66 +8,71 @@ import json
 import numpy as np
 import datetime
 
-def main():
-    cfg = yaml.full_load(open("full-data-config_5_lat1024.yml", 'r')) 
-    inferenceConfig = cfg['INFERENCE']
-    
-    os.environ['CUDA_VISIBLE_DEVICES'] = inferenceConfig['gpuID']
+def load_model(model_config, inference_config, device):
+    # load dictionary
+    event2word = pickle.load(open(inference_config['vocab_data_path'], 'rb'))
+    word2event = pickle.load(open(inference_config['rev_vocab_data_path'], 'rb'))
 
-    print('='*2, 'Inferenc configs', '='*5)
-    print(json.dumps(inferenceConfig, indent=1, sort_keys=True))
+    # declare model
+    model =  TransformerXL(
+            model_config,
+            device,
+            event2word=event2word, 
+            word2event=word2event, 
+            is_training=False)
+    return model
     
+def get_device(inference_config):
+    os.environ['CUDA_VISIBLE_DEVICES'] = inference_config['gpuID']
+    device = torch.device("cuda" if not inference_config["no_cuda"] and torch.cuda.is_available() else "cpu")
+    print('Device to generate:', device)
+    return device
 
+def get_model_path(inference_config):
     # checkpoint information
-    CHECKPOINT_FOLDER = inferenceConfig['experiment_dir']
-    midi_folder = inferenceConfig["generated_dir"]
+    CHECKPOINT_FOLDER = inference_config['experiment_dir']
 
-    checkpoint_type = inferenceConfig['checkpoint_type']
+    checkpoint_type = inference_config['checkpoint_type']
     if checkpoint_type == 'best_train':
         model_path = os.path.join(CHECKPOINT_FOLDER, 'model_best.pth.tar')
     elif checkpoint_type == 'best_val':
         model_path = os.path.join(CHECKPOINT_FOLDER, 'model_best_val.pth.tar')
     elif checkpoint_type == 'epoch_idx':
-        model_path = os.path.join(CHECKPOINT_FOLDER, 'ep_{}.pth.tar'.format(str(inferenceConfig['model_epoch'])))
+        model_path = os.path.join(CHECKPOINT_FOLDER, 'ep_{}.pth.tar'.format(str(inference_config['model_epoch'])))
 
-    # Insert folder path for pre-trained model
-    pretrainCfg = yaml.full_load(open(os.path.join(CHECKPOINT_FOLDER,"full-data-config.yml"), 'r')) 
-    modelConfig = pretrainCfg['MODEL']
+    return model_path
 
-    # create result folder
-    if not os.path.exists(midi_folder):
-        os.mkdir(midi_folder)
+def create_output_dir(inference_config, output_name):
+    parent_output_dir = inference_config['generated_dir']
+    if not os.path.exists(parent_output_dir):
+        os.mkdir(parent_output_dir)
 
-    # load dictionary
-    event2word = pickle.load(open(inferenceConfig['vocab_data_path'], 'rb'))
-    word2event = pickle.load(open(inferenceConfig['rev_vocab_data_path'], 'rb'))
+    experiment_dir = os.path.join(inference_config['generated_dir'], output_name)
+    if not os.path.exists(experiment_dir):
+        print('Creating experiment_dir:', experiment_dir)
+        os.makedir(experiment_dir) 
+    return experiment_dir
 
-    # declare model
-    device = torch.device("cuda" if not inferenceConfig["no_cuda"] and torch.cuda.is_available() else "cpu")
-    print('Device to generate:', device)
+def run_inference():
+    model_config = yaml.full_load(open("model_config.yaml", 'r')) 
+    inference_config = yaml.full_load(open("inference_config.yaml", 'r')) 
 
-    # declare model
-    model =  TransformerXL(
-            modelConfig,
-            inferenceConfig['gpuID'],
-            event2word=event2word, 
-            word2event=word2event, 
-            is_training=False)
+    device = get_device(inference_config)
+    model = load_model(model_config, inference_config, device)
+    model_path = get_model_path(inference_config)
+
+    curr_date = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+    experiment_dir = create_output_dir(inference_config, curr_date)
+
 
     # inference
     song_time_list = []
     words_len_list = []
-    num_samples = inferenceConfig["num_sample"]
-    bpm = inferenceConfig["bpm"]
-    num_bars = inferenceConfig["num_bars"]
-    key = inferenceConfig["key"]
-    initial_wait = inferenceConfig["initial_wait"]    
-
-    cur_date = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
-    experiment_dir = os.path.join(inferenceConfig['generated_dir'],cur_date)
-    if not os.path.exists(experiment_dir):
-        print('Creating experiment_dir:', experiment_dir)
-        os.makedirs(experiment_dir) 
+    num_samples = inference_config["num_sample"]
+    bpm = 120
+    num_bars = 16
+    key = "a"
+    initial_wait = 240  
 
     for idx in range(num_samples):
         print(f'==={idx}/{num_samples}===')
@@ -102,10 +99,6 @@ def main():
         'ave token time:': sum(words_len_list) / sum(song_time_list),
         'ave song time': float(np.mean(song_time_list)),
     }
-    
-
-    with open('runtime_stats.json', 'w') as f:
-        json.dump(runtime_result, f)
 
 if __name__ == '__main__':
-    main()
+    run_inference()

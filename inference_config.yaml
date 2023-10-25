@@ -1,0 +1,9 @@
+num_sample: 5 #number of songs to generate
+gpuID: '0'
+experiment_dir: './model-weights'      # folder containing model checkpoint
+generated_dir: './inference_attempts'
+checkpoint_type: epoch_idx  # best_train, best_val, epoch_idx
+model_epoch: 40               
+no_cuda: False
+vocab_data_path: './data/vocab_song_artist.pkl'
+rev_vocab_data_path: './data/rev_vocab_song_artist.pkl'

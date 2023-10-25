@@ -1,0 +1,26 @@
+#architecture configuration
+n_head: 8
+n_layer: 10 
+dropout: 0.15       
+d_inner: 4096
+d_embed: 512
+d_model: 1024
+dropatt: 0.0         #attention probability dropout rate
+query_dim: 16
+seq_len: 512
+n_token: 3020
+mem_len: 512
+ext_len: 0
+tgt_len: 70
+eval_tgt_len: 50
+init: 'normal'       #parameter initializer to use.
+emb_init: 'normal'   #parameter initializer to use.
+init_range: 0.1
+emb_init_range: 0.01 #parameters initialized by U(-init_range, init_range)
+init_std: 0.02       #parameters initialized by N(0, init_std)
+proj_init_std: 0.01
+clamp_len: -1        #use the same pos embeddings after clamp_len
+div_val: 1
+position_concat: False
+pre_lnorm: True      #apply LayerNorm to the input instead of the output
+same_length: True    #use the same attn length for all tokens

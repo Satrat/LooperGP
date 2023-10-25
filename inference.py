@@ -26,10 +26,7 @@ def load_model(model_config, inference_config, device):
     return model
     
 def get_device(inference_config):
-    os.environ['CUDA_VISIBLE_DEVICES'] = inference_config['gpuID']
-    device = torch.device("cuda" if not inference_config["no_cuda"] and torch.cuda.is_available() else "cpu")
-    print('Device to generate:', device)
-    return device
+    return inference_config['gpuID']
 
 def get_model_path(inference_config):
     # checkpoint information
@@ -58,17 +55,17 @@ def create_output_dir(inference_config, output_name):
 
 def decode_outputs(experiment_dir):
     for item in os.listdir(experiment_dir):
-        print("Decoding {}...".format(item))
         full_path = os.path.join(experiment_dir, item)
         if full_path.endswith(".txt"):
+            print("Decoding {}...".format(item))
             output_path = os.path.join(experiment_dir, item[:-4] + ".gp5")
             dadagp_decode(full_path, output_path)
 
 def extract_loops(experiment_dir):
     for idx, item in enumerate(os.listdir(experiment_dir)):
-        print("Decoding {}...".format(item))
         full_path = os.path.join(experiment_dir, item)
         if full_path.endswith(".txt"):
+            print("Extracting loops from {}...".format(item))
             text_file = open(full_path, "r")
             tokens = text_file.read().split("\n")
             song = tokens2guitarpro(tokens, verbose=False)
@@ -153,7 +150,6 @@ def extract_loops_from_song(song, generated_tokens, idx, output_dir):
         token_list.append("end")
 
         density = calc_density(token_list)
-        total_density += density
         print("FOUND {} loops in ex_{}, density {}".format(num_segments, idx, density))
 
         #save extracted loops
@@ -206,8 +202,7 @@ def run_inference(output_loc):
     print('ave token time:', sum(words_len_list) / sum(song_time_list))
     print('ave song time:', np.mean(song_time_list))
 
-    decode_outputs(experiment_dir)
-    extract_loops(experiment_dir)
+    return experiment_dir
 
 if __name__ == '__main__':
     output_loc = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')

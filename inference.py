@@ -50,7 +50,7 @@ def create_output_dir(inference_config, output_name):
     experiment_dir = os.path.join(inference_config['generated_dir'], output_name)
     if not os.path.exists(experiment_dir):
         print('Creating experiment_dir:', experiment_dir)
-        os.makedir(experiment_dir) 
+        os.mkdir(experiment_dir) 
     return experiment_dir
 
 def decode_outputs(experiment_dir):

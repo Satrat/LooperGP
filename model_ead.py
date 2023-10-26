@@ -502,7 +502,6 @@ class TransformerXL(object):
     
         wait_time = int(primer[-1].split(":")[1])
         ticks_since_measure = wait_time
-        print(wait_time)
         beg_list = primer
 
         instruments = []
@@ -511,7 +510,7 @@ class TransformerXL(object):
                 inst = token.split(":")[0]
                 if inst not in instruments:
                     instruments.append(inst)
-        print(instruments)
+        print("Instruments: {}".format(instruments))
 
         # FOR THE SPLITTED APPROACH
         others_splitted=[]

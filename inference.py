@@ -109,7 +109,7 @@ def calc_density(token_list):
 def extract_loops_from_song(song, generated_tokens, name, output_dir, loop_config):
     #loop extraction parameters
     LOOP_SIZE = loop_config.loop_size
-    MIN_LEN = loop_config.min_len
+    MIN_LEN = loop_config.min_length
     MIN_REP_BEATS = loop_config.min_rep_beats
     DENSITY = loop_config.density
 

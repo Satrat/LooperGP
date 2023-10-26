@@ -42,11 +42,12 @@ def network_paras(model):
     return params
 
 class TransformerXL(object):
-    def __init__(self, modelConfig, device_rank, event2word, word2event, is_training=True):
+    def __init__(self, modelConfig, model_path, device_rank, event2word, word2event, is_training=True):
 
         self.event2word = event2word
         self.word2event = word2event
         self.modelConfig = modelConfig
+        self.model_path = model_path
 
         # model settings    
         self.n_layer= modelConfig['n_layer']
@@ -320,12 +321,12 @@ class TransformerXL(object):
                     break
 
     #For running inference from inference.py, saves output directly to file
-    def inference(self, model_path, strategies, params, id, output_path):
+    def inference(self, strategies, params, id, output_path):
 
         if not os.path.exists(output_path):
             os.mkdir(output_path)
         
-        _, model = self.get_model(model_path)
+        _, model = self.get_model(self.model_path)
         model.eval()
         
         # initial start
@@ -489,8 +490,8 @@ class TransformerXL(object):
         return song_total_time, len(words[0])
 
     #for running inference from extract_ex.ipynb, returns token list
-    def inference_single_from_primer(self, model_path, strategies, params, primer):
-        _, model = self.get_model(model_path)
+    def inference_single_from_primer(self, strategies, params, primer):
+        _, model = self.get_model(self.model_path)
         model.eval()
         
         # initial start

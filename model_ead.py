@@ -499,13 +499,13 @@ class TransformerXL(object):
 
         # text string to save into file
         final = str()
-    
-        wait_time = int(primer[-1].split(":")[1])
-        ticks_since_measure = wait_time
-        beg_list = primer
 
+        beg_list = primer
         instruments = []
+        ticks_since_measure = 0
         for token in primer:
+            if "wait" in token:
+                ticks_since_measure += int(primer[-1].split(":")[1])
             if "note" in token or "rest" in token:
                 inst = token.split(":")[0]
                 if inst not in instruments:
@@ -604,7 +604,7 @@ class TransformerXL(object):
 
             # skip new_measure tokens since we are enforcing boundaries manually
             if self.word2event[word] == 'new_measure':
-                print("SKIPPING ", self.word2event[word])
+                #print("SKIPPING ", self.word2event[word])
                 probs = self.temperature(logits=logits, temperature=10) #5
                 word = self.nucleus(probs=probs, p=0.99) #0.99
 
@@ -615,15 +615,15 @@ class TransformerXL(object):
                 split_word = self.word2event[word].split(":")
                 wait_amnt = int(split_word[1])
                 if ticks_since_measure + wait_amnt > ticks_per_measure:
-                    print(ticks_per_measure, ticks_since_measure)
+                    #print(ticks_per_measure, ticks_since_measure)
                     new_wait_amnt = ticks_per_measure - ticks_since_measure
                     if "wait:" + str(new_wait_amnt) in self.event2word:
-                        print("new wait valid")
+                        #print("new wait valid")
                         word = self.event2word["wait:" + str(new_wait_amnt)]
                         new_measure = True
                         ticks_since_measure = 0
                     else:
-                        print('new wait invalid, skipping')
+                        #print('new wait invalid, skipping')
                         skip_token = True
                 elif ticks_since_measure + wait_amnt == ticks_per_measure:
                     new_measure = True
@@ -639,8 +639,8 @@ class TransformerXL(object):
                 if inst not in instruments:
                     skip_token = True
             
-            if skip_token:
-                print("SKIPPING", self.word2event[word])
+            #if skip_token:
+                #print("SKIPPING", self.word2event[word])
             if not skip_token:
                 words[0].append(word)
                 final += self.word2event[word] + '\n'

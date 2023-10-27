@@ -15,10 +15,10 @@ from dataclasses import dataclass
 
 @dataclass
 class LoopExtractConfig:
-    loop_size = 4
-    min_length = 4
-    min_rep_beats = 2.0
-    density = 1.0
+    loop_size: int = 4
+    min_length: int = 4
+    min_rep_beats: float = 2.0
+    density: float = 1.0
 
 def load_model(model_config, inference_config, device):
     # load dictionary
@@ -209,5 +209,5 @@ if __name__ == '__main__':
         name = "example_" + str(idx)
         primer = build_primer(120, key="e", duration=480)
         bars_to_generate = 8
-        loop_extract_config = LoopExtractConfig() #defaults
+        loop_extract_config = LoopExtractConfig(loop_size=2) #defaults
         run_single_inference(experiment_dir, name, model, bars_to_generate, primer, loop_extract_config)

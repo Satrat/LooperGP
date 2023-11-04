@@ -175,8 +175,8 @@ def save_loop(loop_tokens, header, output_dir, name, idx):
     dadagp_path = os.path.join(output_dir, str(name) + "_loop" + str(idx) + ".gp5")
     guitarpro.write(song, dadagp_path)
 
-def run_single_inference(output_loc, name, model, num_bars, primer, loop_config):
-    generated_tokens = model.inference_single_from_primer(['temperature', 'nucleus'], {'t': 1.2 ,'p': 0.9, 'num_bars': num_bars}, primer)
+def run_single_inference(output_loc, name, model, num_bars, primer, temp, loop_config):
+    generated_tokens = model.inference_single_from_primer(['temperature', 'nucleus'], {'t': temp ,'p': 0.9, 'num_bars': num_bars}, primer)
     text_output_path = os.path.join(output_loc, name + "_tokens" + ".txt")
     with open(text_output_path, "w") as text_file:
         text_file.write("\n".join(generated_tokens))
